@@ -7,7 +7,10 @@ import {
   assertCanonicalLogUrl,
   logUrlsEqual,
 } from "../log/canonical-url.ts";
-import { type MockLogEntry, MockTransparencyLog } from "../log/mock-log.ts";
+import {
+  type ReceiptSubmissionLog,
+  type TransparencyLogEntry,
+} from "../log/types.ts";
 import {
   ZERO_SHA256_DIGEST,
   encodeReceiptBody,
@@ -23,7 +26,7 @@ export type CreateReceiptInput = {
   serviceKid: Uint8Array;
   servicePrivateKey: Uint8Array;
   serviceIdentifier: string;
-  log: MockTransparencyLog;
+  log: ReceiptSubmissionLog;
   actionType: string;
   actionInputBytes: Uint8Array;
   actionOutputBytes?: Uint8Array;
@@ -35,7 +38,7 @@ export type CreatedReceipt = {
   receiptBody: ReceiptBody;
   protectedHeaderBytes: Uint8Array;
   envelope: Uint8Array;
-  logEntry: MockLogEntry;
+  logEntry: TransparencyLogEntry;
 };
 
 export type CreateReceiptFromJwsInput = Omit<

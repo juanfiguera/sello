@@ -6,6 +6,7 @@ export * from "./log/canonical-url.ts";
 export * from "./log/mock-log.ts";
 export * from "./log/rekor.ts";
 export * from "./log/types.ts";
+export * from "./mcp/middleware.ts";
 export * from "./owner/verify.ts";
 export * from "./registry/json-registry.ts";
 export * from "./receipt/body.ts";

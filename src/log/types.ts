@@ -20,3 +20,8 @@ export type VerificationLog = {
   queryByTokenRef(tokenRef: Uint8Array): TransparencyLogQueryResult;
   verifyInclusionProof(entry: TransparencyLogEntry): boolean;
 };
+
+export type ReceiptSubmissionLog = {
+  logUrl: CanonicalLogUrl;
+  append(envelope: Uint8Array, integratedTime?: string): TransparencyLogEntry;
+};

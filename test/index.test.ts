@@ -7,6 +7,7 @@ import {
   generateEd25519KeyPair,
   MockTransparencyLog,
   RekorDiscoveryLog,
+  createSelloMcpMiddleware,
   createReceiptFromJwsToken,
   createReceipt,
   decodeProtectedHeader,
@@ -67,6 +68,10 @@ it("exports Rekor discovery helpers from the package root", () => {
 
 it("exports owner verification helpers from the package root", () => {
   assert.equal(typeof verifyReceipts, "function");
+});
+
+it("exports MCP middleware helpers from the package root", () => {
+  assert.equal(typeof createSelloMcpMiddleware, "function");
 });
 
 it("exports service receipt creation helpers from the package root", () => {
