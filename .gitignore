@@ -1,0 +1,6 @@
+BUILD_PLAN.md
+find-my-for-ai-agents.md
+node_modules/
+coverage/
+dist/
+.DS_Store
