@@ -12,6 +12,7 @@
     "./package.json": "./package.json"
   },
   "bin": {
+    "sello-bench": "./src/cli/bench.ts",
     "sello-demo": "./src/cli/demo.ts"
   },
   "files": [
@@ -23,6 +24,7 @@
     "LICENSE"
   ],
   "scripts": {
+    "bench": "node --experimental-strip-types src/cli/bench.ts",
     "demo": "node --experimental-strip-types src/cli/demo.ts",
     "pack:check": "npm pack --dry-run",
     "test": "node --test --experimental-strip-types"

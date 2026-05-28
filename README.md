@@ -50,6 +50,7 @@ A paper describing the protocol's design rationale, threat model, and relation t
 | Understand the protocol | [SPEC.md](SPEC.md) Quick Start |
 | Run the local demo | `node --run demo` |
 | Run the test suite | `node --run test` |
+| Measure local size/performance | `node --run bench -- --json` |
 | Emit receipts from a service | [SPEC.md](SPEC.md) §§3.1, 4.1, 5, 6.2 |
 | Verify receipts as an owner | [SPEC.md](SPEC.md) §§4.2, 5, 6.2, 7.1 |
 | Build the reference implementation | Start with "The First 10 Minutes" below |
