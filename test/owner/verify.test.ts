@@ -36,6 +36,7 @@ describe("owner receipt verification", () => {
     assert.equal(result.receipts[0].status, "valid");
     assert.equal(result.receipts[0].receipt["action-type"], "tools/call");
     assert.equal(result.receipts[0].serviceIdentifier, "github.com/mcp/v1");
+    assert.equal(result.receipts[0].logCompleteness, "complete");
   });
 
   it("rejects receipts returned by a different trusted log than the signed log URL", () => {

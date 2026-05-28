@@ -6,6 +6,7 @@ import {
   loadSignedRegistry,
   generateEd25519KeyPair,
   MockTransparencyLog,
+  RekorDiscoveryLog,
   createReceiptFromJwsToken,
   createReceipt,
   decodeProtectedHeader,
@@ -58,6 +59,10 @@ it("exports registry helpers from the package root", () => {
 
 it("exports mock log helpers from the package root", () => {
   assert.equal(typeof MockTransparencyLog, "function");
+});
+
+it("exports Rekor discovery helpers from the package root", () => {
+  assert.equal(typeof RekorDiscoveryLog, "function");
 });
 
 it("exports owner verification helpers from the package root", () => {

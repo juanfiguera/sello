@@ -7,9 +7,10 @@ import {
   logUrlsEqual,
 } from "../log/canonical-url.ts";
 import {
-  type MockLogEntry,
-  type MockLogQueryResult,
-} from "../log/mock-log.ts";
+  type LogCompleteness,
+  type TransparencyLogEntry,
+  type VerificationLog,
+} from "../log/types.ts";
 import { decodeReceiptBody, type ReceiptBody } from "../receipt/body.ts";
 import {
   type JsonIdentityRegistry,
@@ -28,12 +29,6 @@ export type VerificationRejectionCode =
   | "hpke_open_failed"
   | "invalid_receipt_body";
 
-export type VerificationLog = {
-  logUrl: CanonicalLogUrl;
-  queryByTokenRef(tokenRef: Uint8Array): MockLogQueryResult;
-  verifyInclusionProof(entry: MockLogEntry): boolean;
-};
-
 export type VerifyReceiptsInput = {
   authorizationTokenBytes: Uint8Array;
   trustedLogs: readonly VerificationLog[];
@@ -48,6 +43,7 @@ export type VerifiedReceipt = {
   kidHex: string;
   tokenRefHex: string;
   logUrl: CanonicalLogUrl;
+  logCompleteness: LogCompleteness;
   integratedTime: string;
   duplicateOf?: number;
   sameSecondActivity: boolean;
@@ -81,6 +77,7 @@ export function verifyReceipts(input: VerifyReceiptsInput): VerifyReceiptsResult
       const verified = verifyOneEntry({
         entry,
         log,
+        logCompleteness: result.completeness,
         trustedLogUrls,
         tokenRef: identifiers.sello_token_ref,
         registry: input.registry,
@@ -126,8 +123,9 @@ export function verifyReceipts(input: VerifyReceiptsInput): VerifyReceiptsResult
 }
 
 type VerifyOneEntryInput = {
-  entry: MockLogEntry;
+  entry: TransparencyLogEntry;
   log: VerificationLog;
+  logCompleteness: LogCompleteness;
   trustedLogUrls: readonly CanonicalLogUrl[];
   tokenRef: Uint8Array;
   registry: JsonIdentityRegistry;
@@ -219,6 +217,7 @@ function verifyOneEntry(input: VerifyOneEntryInput): VerifiedReceipt | RejectedR
       kidHex: toHex(protectedHeader.kid),
       tokenRefHex: toHex(protectedHeader.sello_token_ref),
       logUrl: input.log.logUrl,
+      logCompleteness: input.logCompleteness,
       integratedTime: input.entry.integratedTime,
       sameSecondActivity: false,
     };
@@ -251,7 +250,7 @@ function truncateTimestampToSecond(timestamp: string): string {
 function reject(
   code: VerificationRejectionCode,
   error: unknown,
-  entry: MockLogEntry,
+  entry: TransparencyLogEntry,
 ): RejectedReceipt {
   return {
     status: "rejected",

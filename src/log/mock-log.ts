@@ -6,6 +6,7 @@ import {
   assertCanonicalLogUrl,
   logUrlsEqual,
 } from "./canonical-url.ts";
+import { type TransparencyLogQueryResult } from "./types.ts";
 
 export type MockInclusionProof = {
   logUrl: CanonicalLogUrl;
@@ -23,7 +24,7 @@ export type MockLogEntry = {
   proof: MockInclusionProof;
 };
 
-export type MockLogQueryResult = {
+export type MockLogQueryResult = TransparencyLogQueryResult & {
   completeness: "complete";
   entries: MockLogEntry[];
 };
