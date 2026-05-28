@@ -1,3 +1,5 @@
+#!/usr/bin/env -S node --experimental-strip-types
+
 import { encodeCbor } from "../cbor.ts";
 import { decodeReceiptEnvelope, generateEd25519KeyPair } from "../cose/sign1.ts";
 import { toHex } from "../crypto/identifiers.ts";
