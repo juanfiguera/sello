@@ -14,6 +14,7 @@ import {
   type ReceiptBody,
   type ResultStatus,
 } from "../receipt/body.ts";
+import { verifySelloJwsToken } from "../token/jws-profile.ts";
 
 export type CreateReceiptInput = {
   authorizationTokenBytes: Uint8Array;
@@ -35,6 +36,15 @@ export type CreatedReceipt = {
   protectedHeaderBytes: Uint8Array;
   envelope: Uint8Array;
   logEntry: MockLogEntry;
+};
+
+export type CreateReceiptFromJwsInput = Omit<
+  CreateReceiptInput,
+  "authorizationTokenBytes" | "ownerHpkePublicKey" | "selloLogs"
+> & {
+  authorizationToken: string | Uint8Array;
+  tokenIssuerPublicKey: Uint8Array;
+  fallbackSelloLogs?: readonly string[];
 };
 
 export function createReceipt(input: CreateReceiptInput): CreatedReceipt {
@@ -90,6 +100,23 @@ export function createReceipt(input: CreateReceiptInput): CreatedReceipt {
     envelope,
     logEntry,
   };
+}
+
+export function createReceiptFromJwsToken(
+  input: CreateReceiptFromJwsInput,
+): CreatedReceipt {
+  const verifiedToken = verifySelloJwsToken({
+    authorizationToken: input.authorizationToken,
+    issuerPublicKey: input.tokenIssuerPublicKey,
+  });
+  const selloLogs = verifiedToken.selloLogs ?? input.fallbackSelloLogs;
+
+  return createReceipt({
+    ...input,
+    authorizationTokenBytes: verifiedToken.authorizationTokenBytes,
+    ownerHpkePublicKey: verifiedToken.ownerHpkePublicKey,
+    selloLogs: selloLogs ?? [],
+  });
 }
 
 function selectOwnerTrustedLog(

@@ -8,3 +8,4 @@ export * from "./owner/verify.ts";
 export * from "./registry/json-registry.ts";
 export * from "./receipt/body.ts";
 export * from "./service/create-receipt.ts";
+export * from "./token/jws-profile.ts";

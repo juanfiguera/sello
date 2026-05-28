@@ -6,6 +6,7 @@ import {
   loadSignedRegistry,
   generateEd25519KeyPair,
   MockTransparencyLog,
+  createReceiptFromJwsToken,
   createReceipt,
   decodeProtectedHeader,
   deriveTokenIdentifiers,
@@ -15,6 +16,7 @@ import {
   openReceiptBody,
   signReceiptEnvelope,
   signRegistryJson,
+  verifySelloJwsToken,
   sealReceiptBody,
   verifyReceipts,
   verifyReceiptEnvelope,
@@ -64,4 +66,9 @@ it("exports owner verification helpers from the package root", () => {
 
 it("exports service receipt creation helpers from the package root", () => {
   assert.equal(typeof createReceipt, "function");
+  assert.equal(typeof createReceiptFromJwsToken, "function");
+});
+
+it("exports JWS token profile helpers from the package root", () => {
+  assert.equal(typeof verifySelloJwsToken, "function");
 });

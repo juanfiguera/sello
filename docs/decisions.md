@@ -60,9 +60,17 @@
 
 ## Service Receipt Creation Boundary
 
-- The first `createReceipt` helper accepts already-verified token claims plus the raw token bytes used for Sello identifier derivation.
-- This keeps the protocol receipt path testable before choosing a JWT/JWS dependency.
-- Before wiring this helper to untrusted service input, add a token-profile module that verifies the compact JWS before exposing `owner_hpke_pk` or `sello_logs`.
+- `createReceipt` accepts already-verified token claims plus the raw token bytes used for Sello identifier derivation.
+- `createReceiptFromJwsToken` is the service-facing helper for v0.1 compact JWS tokens. It verifies the JWS signature before exposing `owner_hpke_pk` or `sello_logs`.
+- The token-profile module deliberately does not implement token authorization semantics such as scope or expiry; those remain service policy outside Sello.
+
+## JWS Token Profile
+
+- Support compact-serialized JWS with JSON protected header and JSON payload.
+- Require `alg: "EdDSA"` and reject `crit` headers in the first implementation.
+- Verify the signature over the exact compact JWS signing input before parsing Sello claims.
+- Validate `owner_hpke_pk` as unpadded base64url encoding of a raw 32-byte X25519 public key.
+- Validate `sello_logs`, when present, as an array of canonical log URL strings.
 
 ## Demo Command
 

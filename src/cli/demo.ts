@@ -9,18 +9,27 @@ import {
   loadSignedRegistry,
   signRegistryJson,
 } from "../registry/json-registry.ts";
-import { createReceipt } from "../service/create-receipt.ts";
+import { createReceiptFromJwsToken } from "../service/create-receipt.ts";
+import { base64urlEncode, signSelloJwsToken } from "../token/jws-profile.ts";
 
 const textEncoder = new TextEncoder();
-const tokenBytes = textEncoder.encode("demo.compact.jws.token");
 const logUrl = "https://rekor.example.com/api" as CanonicalLogUrl;
 const serviceIdentifier = "github.com/mcp/v1";
 
 const owner = generateHpkeKeyPair();
 const service = generateEd25519KeyPair();
 const trustRoot = generateEd25519KeyPair();
+const tokenIssuer = generateEd25519KeyPair();
 const serviceKid = textEncoder.encode("github-mcp-v1-2026-q2");
 const log = new MockTransparencyLog(logUrl);
+const authorizationToken = signSelloJwsToken({
+  issuerPrivateKey: tokenIssuer.privateKey,
+  payload: {
+    sub: "demo-agent",
+    owner_hpke_pk: base64urlEncode(owner.publicKey),
+    sello_logs: [logUrl],
+  },
+});
 const registryBytes = textEncoder.encode(
   JSON.stringify({
     [toHex(serviceKid)]: {
@@ -55,7 +64,7 @@ if (process.argv.includes("--tamper")) {
 }
 
 const result = verifyReceipts({
-  authorizationTokenBytes: tokenBytes,
+  authorizationTokenBytes: textEncoder.encode(authorizationToken),
   trustedLogs: [log],
   registry,
   ownerPrivateKey: owner.privateKey,
@@ -87,10 +96,9 @@ function createDemoReceipt(
   timestamp: string,
   outputText: string,
 ) {
-  return createReceipt({
-    authorizationTokenBytes: tokenBytes,
-    ownerHpkePublicKey: owner.publicKey,
-    selloLogs: [logUrl],
+  return createReceiptFromJwsToken({
+    authorizationToken,
+    tokenIssuerPublicKey: tokenIssuer.publicKey,
     serviceKid,
     servicePrivateKey: service.privateKey,
     serviceIdentifier,
