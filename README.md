@@ -37,6 +37,7 @@ This repository currently contains:
 - [SPEC.md](SPEC.md): the Sello protocol draft.
 - A TypeScript reference implementation in [`src/`](src/).
 - Implementation-backed v0.1 test vectors in [`fixtures/vectors/sello-v0.1.json`](fixtures/vectors/sello-v0.1.json).
+- Security review notes in [`docs/security-review.md`](docs/security-review.md).
 
 The implementation includes a local end-to-end demo, compact JWS token verification, COSE_Sign1 receipt envelopes, HPKE encryption, a mock transparency log, a Rekor discovery adapter, owner verification, and an MCP middleware prototype. Rekor proof verification, production identity operations, and security review are still future work.
 

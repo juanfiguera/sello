@@ -71,6 +71,7 @@
 - Verify the signature over the exact compact JWS signing input before parsing Sello claims.
 - Validate `owner_hpke_pk` as unpadded base64url encoding of a raw 32-byte X25519 public key.
 - Validate `sello_logs`, when present, as an array of canonical log URL strings.
+- Reject impossible unpadded base64url lengths before relying on Node's decoder behavior.
 
 ## Demo Command
 

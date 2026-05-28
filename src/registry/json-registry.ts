@@ -198,7 +198,7 @@ function base64urlDecodeFixed32(value: string, name: string): Uint8Array {
 }
 
 function base64urlDecode(value: string, name: string): Uint8Array {
-  if (!/^[A-Za-z0-9_-]+$/.test(value)) {
+  if (!/^[A-Za-z0-9_-]+$/.test(value) || value.length % 4 === 1) {
     throw new TypeError(`${name} must be unpadded base64url`);
   }
 

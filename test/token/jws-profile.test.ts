@@ -133,6 +133,26 @@ describe("v0.1 JWS token profile", () => {
     );
   });
 
+  it("rejects impossible base64url lengths after signature verification", () => {
+    const issuer = generateEd25519KeyPair();
+    const token = signSelloJwsToken({
+      issuerPrivateKey: issuer.privateKey,
+      payload: {
+        owner_hpke_pk: "A",
+        sello_logs: [logUrl],
+      },
+    });
+
+    assert.throws(
+      () =>
+        verifySelloJwsToken({
+          authorizationToken: token,
+          issuerPublicKey: issuer.publicKey,
+        }),
+      /owner_hpke_pk must encode/,
+    );
+  });
+
   it("rejects malformed sello_logs after signature verification", () => {
     const issuer = generateEd25519KeyPair();
     const owner = generateHpkeKeyPair();

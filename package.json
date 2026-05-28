@@ -17,7 +17,7 @@
   "files": [
     "src",
     "fixtures/vectors",
-    "docs/decisions.md",
+    "docs",
     "SPEC.md",
     "README.md",
     "LICENSE"

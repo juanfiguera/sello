@@ -120,6 +120,21 @@ describe("signed JSON identity registry", () => {
       /registry kid must be lowercase even-length hex/,
     );
   });
+
+  it("rejects impossible base64url signature lengths", () => {
+    const trustRoot = generateEd25519KeyPair();
+    const registryBytes = registryJson({});
+
+    assert.throws(
+      () =>
+        loadSignedRegistry({
+          registryBytes,
+          signatureBase64Url: "A",
+          trustRootPublicKey: trustRoot.publicKey,
+        }),
+      /registry signature must be unpadded base64url/,
+    );
+  });
 });
 
 function revokedRegistry(revokedAt: string) {
