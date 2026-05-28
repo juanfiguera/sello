@@ -5,7 +5,7 @@
 **Version:** 0.1.0-draft
 **Status:** Working draft, open for community input
 **License:** Apache 2.0
-**Reference implementation:** Planned; not yet available
+**Reference implementation:** TypeScript implementation included in this repository
 
 ---
 
@@ -495,14 +495,20 @@ Services SHOULD be aware that public goods logs (e.g. Sigstore Rekor) have rate 
 
 ## 11. Reference Implementation
 
-The TypeScript reference implementation begins with a local end-to-end demo that exercises the full receipt lifecycle with fixed keys and a mock transparency log:
+The TypeScript reference implementation exercises the full receipt lifecycle with fixed keys and a mock transparency log:
 
 - A mock service that emits one or more receipts.
 - A mock owner that verifies and decrypts receipts.
 - A local in-memory transparency log.
+- Compact JWS token verification.
+- COSE_Sign1 receipt envelopes.
+- HPKE encryption to the owner.
+- Owner-side verification.
+- MCP middleware prototype.
+- Rekor discovery adapter with explicit discovery-only completeness.
 - Tests covering the happy path, common tampering failures, and implementation-backed test vectors.
 
-Future implementation work may add MCP server middleware, an owner-side CLI, Rekor integration, and external interoperability fixtures.
+Future implementation work may add live Rekor proof verification, production identity operations, an owner-side CLI, and external interoperability fixtures.
 
 ## 12. Prior Art
 

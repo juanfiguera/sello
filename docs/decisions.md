@@ -75,5 +75,5 @@
 
 ## Demo Command
 
-- Use `node --run demo` for the first local end-to-end demo because the repository does not yet ship a packaged `sello` binary.
+- Ship a small `sello-demo` binary that runs through Node 24's native TypeScript type stripping.
 - The demo prints success, error, and denied receipts as verified JSON, and `--tamper` appends a deliberately bad entry to show structured rejection output.

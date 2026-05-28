@@ -39,7 +39,7 @@ This repository currently contains:
 - Implementation-backed v0.1 test vectors in [`fixtures/vectors/sello-v0.1.json`](fixtures/vectors/sello-v0.1.json).
 - Security review notes in [`docs/security-review.md`](docs/security-review.md).
 
-The implementation includes a local end-to-end demo, compact JWS token verification, COSE_Sign1 receipt envelopes, HPKE encryption, a mock transparency log, a Rekor discovery adapter, owner verification, and an MCP middleware prototype. Rekor proof verification, production identity operations, and security review are still future work.
+The implementation includes a local end-to-end demo, compact JWS token verification, COSE_Sign1 receipt envelopes, HPKE encryption, a mock transparency log, a Rekor discovery adapter, owner verification, an MCP middleware prototype, security review notes, and a local benchmark. Live Rekor proof verification and production identity operations are still future work.
 
 A paper describing the protocol's design rationale, threat model, and relation to prior work is in preparation.
 
@@ -147,7 +147,7 @@ Issues and pull requests are welcome. This is an early draft; adversarial review
 
 ## Development
 
-The reference implementation is just beginning. The current dependency-free test command is:
+The current dependency-free test command is:
 
 ```bash
 node --run test
