@@ -1,3 +1,5 @@
+![Sello banner](docs/assets/sello-banner.png)
+
 # Sello
 
 Sello is a protocol for independently-verifiable records of AI agent actions.
