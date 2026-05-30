@@ -43,7 +43,7 @@ This repository currently contains:
 
 The implementation includes a local end-to-end demo, compact JWS token verification, COSE_Sign1 receipt envelopes, HPKE encryption, a mock transparency log, a Rekor discovery adapter, owner verification, an MCP middleware prototype, security review notes, and a local benchmark. Live Rekor proof verification and production identity operations are still future work.
 
-A paper describing the protocol's design rationale, threat model, and relation to prior work is in preparation.
+📄 **Paper:** [Notarized Agents](docs/paper/notarized-agents.pdf) (draft, May 2026). arXiv submission pending.
 
 ## Start Here
 
