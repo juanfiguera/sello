@@ -49,6 +49,7 @@ const textDecoder = new TextDecoder();
 const command = process.argv[2] ?? "help";
 
 try {
+  enforceNodeVersion();
   switch (command) {
     case "actions":
       await actionsCommand(process.argv.slice(3));
@@ -118,6 +119,7 @@ async function actionsCommand(args: string[]): Promise<void> {
 
 async function devCommand(args: string[]): Promise<void> {
   const port = Number(readFlag(args, "--port") ?? process.env.PORT ?? "8787");
+  const dryRun = args.includes("--dry-run");
   if (!Number.isSafeInteger(port) || port < 1 || port > 65535) {
     throw new TypeError("port must be between 1 and 65535");
   }
@@ -130,6 +132,13 @@ async function devCommand(args: string[]): Promise<void> {
   const logUrl = toCanonicalLogUrl(`http://localhost:${port}/api`);
   const state = createDevState({ serviceId, logUrl, logEndpoint });
   saveDevState(state);
+
+  if (dryRun) {
+    printDevConfig(port, state);
+    console.log("");
+    console.log("Dry run: dev state written, server not started.");
+    return;
+  }
 
   const log = new MockTransparencyLog(logUrl);
   const registry = parseRegistry(textEncoder.encode(state.registryJson));
@@ -144,23 +153,7 @@ async function devCommand(args: string[]): Promise<void> {
   });
 
   server.listen(port, () => {
-    console.log(`Sello dev log running at http://localhost:${port}/actions`);
-    console.log("");
-    console.log("Service env:");
-    console.log(`SELLO_SERVICE_ID=${state.serviceId}`);
-    console.log(`SELLO_SERVICE_KEY=${state.serviceKey}`);
-    console.log(`SELLO_TOKEN_ISSUER_PUBLIC_KEY=${state.tokenIssuerPublicKey}`);
-    console.log(`SELLO_LOG_URL=${state.logUrl}`);
-    console.log(`SELLO_LOG_ENDPOINT=${state.logEndpoint}`);
-    console.log("SELLO_SUBMIT_MODE=background");
-    console.log("");
-    console.log("Viewer env:");
-    console.log(`SELLO_OWNER_KEY=${state.ownerKey}`);
-    console.log(`SELLO_LOG_URL=${state.logUrl}`);
-    console.log(`SELLO_LOG_ENDPOINT=${state.logEndpoint}`);
-    console.log("");
-    console.log("Dev token:");
-    console.log(`SELLO_ACTION_TOKEN=${state.agentToken}`);
+    printDevConfig(port, state);
   });
 }
 
@@ -484,9 +477,38 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function printHelp(): void {
   console.log(`Usage:
-  sello dev [--port 8787] [--service service-id]
+  sello dev [--port 8787] [--service service-id] [--dry-run]
   sello actions [--token agent-token]
   sello keys service
   sello inspect-env
 `);
+}
+
+function printDevConfig(port: number, state: DevState): void {
+  console.log(`Sello dev log running at http://localhost:${port}/actions`);
+  console.log("");
+  console.log("Service env:");
+  console.log(`SELLO_SERVICE_ID=${state.serviceId}`);
+  console.log(`SELLO_SERVICE_KEY=${state.serviceKey}`);
+  console.log(`SELLO_TOKEN_ISSUER_PUBLIC_KEY=${state.tokenIssuerPublicKey}`);
+  console.log(`SELLO_LOG_URL=${state.logUrl}`);
+  console.log(`SELLO_LOG_ENDPOINT=${state.logEndpoint}`);
+  console.log("SELLO_SUBMIT_MODE=background");
+  console.log("");
+  console.log("Viewer env:");
+  console.log(`SELLO_OWNER_KEY=${state.ownerKey}`);
+  console.log(`SELLO_LOG_URL=${state.logUrl}`);
+  console.log(`SELLO_LOG_ENDPOINT=${state.logEndpoint}`);
+  console.log("");
+  console.log("Dev token:");
+  console.log(`SELLO_ACTION_TOKEN=${state.agentToken}`);
+}
+
+function enforceNodeVersion(): void {
+  const major = Number(process.versions.node.split(".")[0]);
+  if (major < 24) {
+    throw new TypeError(
+      `Sello requires Node >=24.0.0; current Node is ${process.versions.node}`,
+    );
+  }
 }
