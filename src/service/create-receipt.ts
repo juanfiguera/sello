@@ -34,10 +34,17 @@ export type CreateReceiptInput = {
   timestamp: string;
 };
 
-export type CreatedReceipt = {
+export type BuildReceiptInput = Omit<CreateReceiptInput, "log"> & {
+  logUrl: CanonicalLogUrl;
+};
+
+export type BuiltReceipt = {
   receiptBody: ReceiptBody;
   protectedHeaderBytes: Uint8Array;
   envelope: Uint8Array;
+};
+
+export type CreatedReceipt = BuiltReceipt & {
   logEntry: TransparencyLogEntry;
 };
 
@@ -50,7 +57,7 @@ export type CreateReceiptFromJwsInput = Omit<
   fallbackSelloLogs?: readonly string[];
 };
 
-export function createReceipt(input: CreateReceiptInput): CreatedReceipt {
+export function buildReceipt(input: BuildReceiptInput): BuiltReceipt {
   assertBytes(input.authorizationTokenBytes, "authorizationTokenBytes");
   assertByteLength(input.ownerHpkePublicKey, 32, "ownerHpkePublicKey");
   assertBytes(input.serviceKid, "serviceKid");
@@ -65,7 +72,7 @@ export function createReceipt(input: CreateReceiptInput): CreatedReceipt {
     throw new TypeError("actionType must be a non-empty string");
   }
 
-  const selectedLogUrl = selectOwnerTrustedLog(input.selloLogs, input.log.logUrl);
+  const selectedLogUrl = selectOwnerTrustedLog(input.selloLogs, input.logUrl);
   const identifiers = deriveTokenIdentifiers(input.authorizationTokenBytes);
   const receiptBody: ReceiptBody = {
     "agent-identifier": identifiers.agent_identifier,
@@ -95,12 +102,23 @@ export function createReceipt(input: CreateReceiptInput): CreatedReceipt {
     payload,
     servicePrivateKey: input.servicePrivateKey,
   });
-  const logEntry = input.log.append(envelope, input.timestamp);
 
   return {
     receiptBody,
     protectedHeaderBytes,
     envelope,
+  };
+}
+
+export function createReceipt(input: CreateReceiptInput): CreatedReceipt {
+  const built = buildReceipt({
+    ...input,
+    logUrl: input.log.logUrl,
+  });
+  const logEntry = input.log.append(built.envelope, input.timestamp);
+
+  return {
+    ...built,
     logEntry,
   };
 }

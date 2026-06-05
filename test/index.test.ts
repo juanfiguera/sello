@@ -8,6 +8,7 @@ import {
   MockTransparencyLog,
   RekorDiscoveryLog,
   createSelloMcpMiddleware,
+  buildReceipt,
   createReceiptFromJwsToken,
   createReceipt,
   decodeProtectedHeader,
@@ -20,6 +21,7 @@ import {
   signRegistryJson,
   verifySelloJwsToken,
   sealReceiptBody,
+  sello,
   verifyReceipts,
   verifyReceiptEnvelope,
 } from "../src/index.ts";
@@ -75,10 +77,17 @@ it("exports MCP middleware helpers from the package root", () => {
 });
 
 it("exports service receipt creation helpers from the package root", () => {
+  assert.equal(typeof buildReceipt, "function");
   assert.equal(typeof createReceipt, "function");
   assert.equal(typeof createReceiptFromJwsToken, "function");
 });
 
 it("exports JWS token profile helpers from the package root", () => {
   assert.equal(typeof verifySelloJwsToken, "function");
+});
+
+it("exports the Stripe-style SDK facade from the package root", () => {
+  assert.equal(typeof sello.service, "function");
+  assert.equal(typeof sello.logs.memory, "function");
+  assert.equal(typeof sello.logs.http, "function");
 });

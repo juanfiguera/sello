@@ -40,6 +40,7 @@ This repository currently contains:
 - A TypeScript reference implementation in [`src/`](src/).
 - Implementation-backed v0.1 test vectors in [`fixtures/vectors/sello-v0.1.json`](fixtures/vectors/sello-v0.1.json).
 - Security review notes in [`docs/security-review.md`](docs/security-review.md).
+- SDK security audit notes in [`docs/sdk-security-audit.md`](docs/sdk-security-audit.md).
 
 The implementation includes a local end-to-end demo, compact JWS token verification, COSE_Sign1 receipt envelopes, HPKE encryption, a mock transparency log, a Rekor discovery adapter, owner verification, an MCP middleware prototype, security review notes, and a local benchmark. Live Rekor proof verification and production identity operations are still future work.
 
@@ -49,6 +50,7 @@ The implementation includes a local end-to-end demo, compact JWS token verificat
 
 | Goal | Read |
 |------|------|
+| Add Sello in a few lines | [SDK Quickstart](docs/sdk-quickstart.md) |
 | Understand the protocol | [SPEC.md](SPEC.md) Quick Start |
 | Run the local demo | `node --run demo` |
 | Run the test suite | `node --run test` |
@@ -56,6 +58,26 @@ The implementation includes a local end-to-end demo, compact JWS token verificat
 | Emit receipts from a service | [SPEC.md](SPEC.md) §§3.1, 4.1, 5, 6.2 |
 | Verify receipts as an owner | [SPEC.md](SPEC.md) §§4.2, 5, 6.2, 7.1 |
 | Build the reference implementation | Start with "The First 10 Minutes" below |
+
+## Add Sello in a Few Lines
+
+```ts
+import { sello } from "sello";
+
+const receipts = sello.service();
+
+export const createEvent = receipts.tool("calendar.create_event", async (request) => {
+  return calendar.events.create(request);
+});
+```
+
+Then inspect verified actions:
+
+```bash
+npx sello actions --token <agent-token>
+```
+
+Sello works with your own log server. `sello.build` is optional convenience, not a protocol requirement.
 
 ## The First 10 Minutes
 
