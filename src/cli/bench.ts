@@ -19,8 +19,18 @@ import {
 } from "../service/create-receipt.ts";
 import { base64urlEncode, signSelloJwsToken } from "../token/jws-profile.ts";
 
+type Distribution = {
+  count: number;
+  mean: number;
+  median: number;
+  p95: number;
+  p99: number;
+  stddev: number;
+};
+
 type BenchResult = {
   iterations: number;
+  warmup_iterations: number;
   node: string;
   sizes: {
     receipt_body_cbor_bytes: number;
@@ -35,14 +45,22 @@ type BenchResult = {
     verify_batch_total: number;
     verify_batch_per_receipt: number;
   };
+  distributions: {
+    create_receipt: Distribution;
+    verify_one_receipt: Distribution;
+    verify_batch_total: { count: 1; value: number };
+    verify_batch_per_receipt: { count: 1; value: number };
+  };
 };
+
+const DEFAULT_WARMUP_ITERATIONS = 500;
 
 const textEncoder = new TextEncoder();
 const logUrl = "https://rekor.example.com/api" as CanonicalLogUrl;
 const serviceIdentifier = "github.com/mcp/v1";
 
 const options = parseArgs(process.argv.slice(2));
-const result = runBenchmark(options.iterations);
+const result = runBenchmark(options.iterations, options.warmupIterations);
 
 if (options.json) {
   console.log(JSON.stringify(result, null, 2));
@@ -50,7 +68,7 @@ if (options.json) {
   printText(result);
 }
 
-function runBenchmark(iterations: number): BenchResult {
+function runBenchmark(iterations: number, warmupIterations: number): BenchResult {
   const sampleFixture = makeFixture();
   const sampleReceipt = createBenchReceipt(sampleFixture, 0);
   const sampleEnvelope = decodeReceiptEnvelope(sampleReceipt.envelope);
@@ -64,21 +82,32 @@ function runBenchmark(iterations: number): BenchResult {
     ).byteLength,
   };
 
+  // When --expose-gc is set, force a baseline GC before warmup so the steady-state
+  // sample isn't contaminated by collection of size-sample allocations. Silently
+  // skipped if the flag isn't present.
+  if (typeof globalThis.gc === "function") {
+    globalThis.gc();
+  }
+
+  warmup(warmupIterations);
+
   const createFixture = makeFixture();
-  const createTiming = time(() => {
-    for (let index = 0; index < iterations; index += 1) {
-      createBenchReceipt(createFixture, index);
-    }
-  });
+  const createDurations = new Array<number>(iterations);
+  for (let index = 0; index < iterations; index += 1) {
+    const t0 = performance.now();
+    createBenchReceipt(createFixture, index);
+    createDurations[index] = performance.now() - t0;
+  }
 
   const verifyOneFixture = makeFixture();
   createBenchReceipt(verifyOneFixture, 0);
-  const verifyOneTiming = time(() => {
-    for (let index = 0; index < iterations; index += 1) {
-      const result = verifyReceipts(verifyOneFixture.ownerInput());
-      assertVerifiedCount(result.receipts.length, 1);
-    }
-  });
+  const verifyOneDurations = new Array<number>(iterations);
+  for (let index = 0; index < iterations; index += 1) {
+    const t0 = performance.now();
+    const result = verifyReceipts(verifyOneFixture.ownerInput());
+    verifyOneDurations[index] = performance.now() - t0;
+    assertVerifiedCount(result.receipts.length, 1);
+  }
 
   const batchFixture = makeFixture();
   for (let index = 0; index < iterations; index += 1) {
@@ -89,17 +118,85 @@ function runBenchmark(iterations: number): BenchResult {
     assertVerifiedCount(result.receipts.length, iterations);
   });
 
+  const createTotal = sum(createDurations);
+  const verifyOneTotal = sum(verifyOneDurations);
+
   return {
     iterations,
+    warmup_iterations: warmupIterations,
     node: process.version,
     sizes,
     timings_ms: {
-      create_receipt_avg: roundMs(createTiming / iterations),
-      verify_one_receipt_avg: roundMs(verifyOneTiming / iterations),
+      create_receipt_avg: roundMs(createTotal / iterations),
+      verify_one_receipt_avg: roundMs(verifyOneTotal / iterations),
       verify_batch_total: roundMs(verifyBatchTiming),
       verify_batch_per_receipt: roundMs(verifyBatchTiming / iterations),
     },
+    distributions: {
+      create_receipt: summarize(createDurations),
+      verify_one_receipt: summarize(verifyOneDurations),
+      verify_batch_total: { count: 1, value: roundMs(verifyBatchTiming) },
+      verify_batch_per_receipt: {
+        count: 1,
+        value: roundMs(verifyBatchTiming / iterations),
+      },
+    },
   };
+}
+
+function warmup(count: number): void {
+  const fixture = makeFixture();
+  for (let index = 0; index < count; index += 1) {
+    createBenchReceipt(fixture, index);
+  }
+  const verifyFixture = makeFixture();
+  createBenchReceipt(verifyFixture, 0);
+  for (let index = 0; index < count; index += 1) {
+    const result = verifyReceipts(verifyFixture.ownerInput());
+    assertVerifiedCount(result.receipts.length, 1);
+  }
+}
+
+function summarize(durations: number[]): Distribution {
+  if (durations.length === 0) {
+    throw new Error("cannot summarize empty distribution");
+  }
+  const sorted = durations.slice().sort((a, b) => a - b);
+  const count = sorted.length;
+  const total = sum(sorted);
+  const mean = total / count;
+  const variance =
+    sorted.reduce((acc, value) => acc + (value - mean) ** 2, 0) / count;
+  return {
+    count,
+    mean: roundMs(mean),
+    median: roundMs(percentile(sorted, 0.5)),
+    p95: roundMs(percentile(sorted, 0.95)),
+    p99: roundMs(percentile(sorted, 0.99)),
+    stddev: roundMs(Math.sqrt(variance)),
+  };
+}
+
+function percentile(sortedAscending: number[], quantile: number): number {
+  if (sortedAscending.length === 1) {
+    return sortedAscending[0];
+  }
+  const rank = quantile * (sortedAscending.length - 1);
+  const lower = Math.floor(rank);
+  const upper = Math.ceil(rank);
+  if (lower === upper) {
+    return sortedAscending[lower];
+  }
+  const fraction = rank - lower;
+  return sortedAscending[lower] * (1 - fraction) + sortedAscending[upper] * fraction;
+}
+
+function sum(values: number[]): number {
+  let total = 0;
+  for (const value of values) {
+    total += value;
+  }
+  return total;
 }
 
 function makeFixture() {
@@ -177,8 +274,13 @@ function time(callback: () => void): number {
   return performance.now() - start;
 }
 
-function parseArgs(args: string[]): { iterations: number; json: boolean } {
+function parseArgs(args: string[]): {
+  iterations: number;
+  warmupIterations: number;
+  json: boolean;
+} {
   let iterations = 100;
+  let warmupIterations = DEFAULT_WARMUP_ITERATIONS;
   let json = false;
 
   for (let index = 0; index < args.length; index += 1) {
@@ -201,6 +303,18 @@ function parseArgs(args: string[]): { iterations: number; json: boolean } {
       continue;
     }
 
+    if (arg === "--warmup") {
+      const raw = args[index + 1];
+      index += 1;
+      warmupIterations = parseWarmupIterations(raw);
+      continue;
+    }
+
+    if (arg.startsWith("--warmup=")) {
+      warmupIterations = parseWarmupIterations(arg.slice("--warmup=".length));
+      continue;
+    }
+
     if (arg === "--help") {
       printHelp();
       process.exit(0);
@@ -209,7 +323,7 @@ function parseArgs(args: string[]): { iterations: number; json: boolean } {
     throw new TypeError(`unknown argument: ${arg}`);
   }
 
-  return { iterations, json };
+  return { iterations, warmupIterations, json };
 }
 
 function parseIterations(value: string | undefined): number {
@@ -217,6 +331,16 @@ function parseIterations(value: string | undefined): number {
 
   if (!Number.isSafeInteger(iterations) || iterations < 1) {
     throw new TypeError("--iterations must be a positive integer");
+  }
+
+  return iterations;
+}
+
+function parseWarmupIterations(value: string | undefined): number {
+  const iterations = Number(value);
+
+  if (!Number.isSafeInteger(iterations) || iterations < 0) {
+    throw new TypeError("--warmup must be a non-negative integer");
   }
 
   return iterations;
@@ -233,7 +357,9 @@ function roundMs(value: number): number {
 }
 
 function printText(result: BenchResult): void {
-  console.log(`Sello benchmark (${result.iterations} iterations, ${result.node})`);
+  console.log(
+    `Sello benchmark (${result.iterations} iterations, ${result.warmup_iterations} warmup, ${result.node})`,
+  );
   console.log("");
   console.log("Receipt sizes:");
   for (const [name, value] of Object.entries(result.sizes)) {
@@ -244,11 +370,21 @@ function printText(result: BenchResult): void {
   for (const [name, value] of Object.entries(result.timings_ms)) {
     console.log(`  ${name}: ${value} ms`);
   }
+  console.log("");
+  console.log("Distributions:");
+  printDistribution("create_receipt", result.distributions.create_receipt);
+  printDistribution("verify_one_receipt", result.distributions.verify_one_receipt);
 }
 
 function printHelp(): void {
-  console.log(`Usage: sello-bench [--iterations N] [--json]
+  console.log(`Usage: sello-bench [--iterations N] [--warmup N] [--json]
 
 Runs a local benchmark over the mock-log Sello receipt flow.
 Results are useful for rough regression tracking, not formal crypto benchmarks.`);
+}
+
+function printDistribution(name: string, distribution: Distribution): void {
+  console.log(
+    `  ${name}: mean ${distribution.mean} ms, median ${distribution.median} ms, p95 ${distribution.p95} ms, p99 ${distribution.p99} ms, stddev ${distribution.stddev} ms`,
+  );
 }
