@@ -44,7 +44,7 @@ This repository currently contains:
 
 The implementation includes a local end-to-end demo, compact JWS token verification, COSE_Sign1 receipt envelopes, HPKE encryption, a mock transparency log, a Rekor discovery adapter, owner verification, an MCP middleware prototype, security review notes, and a local benchmark. Live Rekor proof verification and production identity operations are still future work.
 
-📄 **Paper:** [Notarized Agents](docs/paper/notarized-agents.pdf) (draft, May 2026). arXiv submission pending.
+📄 **Paper:** [Notarized Agents: Receiver-Attested Confidential Receipts for AI Agent Actions](https://arxiv.org/abs/2606.04193) (arXiv:2606.04193, submitted June 2026). Local PDF: [docs/paper/notarized-agents.pdf](docs/paper/notarized-agents.pdf).
 
 ## Start Here
 
