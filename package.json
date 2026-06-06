@@ -12,9 +12,9 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "sello": "./src/cli/sello.ts",
-    "sello-bench": "./src/cli/bench.ts",
-    "sello-demo": "./src/cli/demo.ts"
+    "sello": "src/cli/sello.ts",
+    "sello-bench": "src/cli/bench.ts",
+    "sello-demo": "src/cli/demo.ts"
   },
   "files": [
     "examples",
