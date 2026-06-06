@@ -30,6 +30,7 @@
     "bench": "node --experimental-strip-types src/cli/bench.ts",
     "demo": "node --experimental-strip-types src/cli/demo.ts",
     "dev": "node --experimental-strip-types src/cli/sello.ts dev",
+    "example:mcp": "node --experimental-strip-types examples/mcp-tool-server.ts",
     "example:tool": "node --experimental-strip-types examples/quickstart-tool.ts",
     "pack:check": "npm pack --dry-run",
     "test": "node --test --experimental-strip-types"

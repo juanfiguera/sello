@@ -42,6 +42,7 @@ These notes cover the first Stripe-style SDK implementation pass. They are writt
 - The quickstart tool reads ignored local dev state from `.sello/dev.json`; it does not print the service key, owner key, or agent token.
 - The example uses `submit: { mode: "await" }` so the command succeeds only after the receipt append completes.
 - The example canonicalizes only tool input fields and excludes the authorization token wrapper from the action input hash.
+- The MCP-style example reads the bearer token from the transport header, but hashes only the `tools/call` method and params.
 - README and quickstart docs keep self-hosting first-class and describe `sello.build` as optional convenience.
 
 ## Residual Risks

@@ -29,13 +29,20 @@ node --run example:tool
 node --run actions
 ```
 
+For an MCP-shaped `tools/call` boundary, run:
+
+```bash
+node --run example:mcp
+node --run actions
+```
+
 or open:
 
 ```text
 http://localhost:8787/actions
 ```
 
-The example reads `.sello/dev.json`, wraps a fake calendar handler, submits one encrypted receipt, and lets the owner verify it locally.
+Both examples read `.sello/dev.json`, wrap a fake calendar handler, submit one encrypted receipt, and let the owner verify it locally.
 
 For your own tool server, copy the printed service env:
 
