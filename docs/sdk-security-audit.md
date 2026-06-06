@@ -37,6 +37,13 @@ These notes cover the first Stripe-style SDK implementation pass. They are writt
 - Viewing details requires `SELLO_OWNER_KEY` or local dev state created by `sello dev`.
 - Production registry URLs require a registry signature and trust root before `sello actions` will use them.
 
+## Phase 5: Docs And First-Run Flow
+
+- The quickstart tool reads ignored local dev state from `.sello/dev.json`; it does not print the service key, owner key, or agent token.
+- The example uses `submit: { mode: "await" }` so the command succeeds only after the receipt append completes.
+- The example canonicalizes only tool input fields and excludes the authorization token wrapper from the action input hash.
+- README and quickstart docs keep self-hosting first-class and describe `sello.build` as optional convenience.
+
 ## Residual Risks
 
 - Background submission can drop receipts under sustained pressure if the bounded queue fills. This is surfaced through `onDrop`; durable queues are deferred.

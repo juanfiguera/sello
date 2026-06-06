@@ -16,13 +16,28 @@ The service process emits receipts. It does not need the owner private key.
 
 ## Local Development
 
-Start the local log and action viewer:
+Inside this repo, start the local log and action viewer:
 
 ```bash
-npx sello dev
+node --run dev
 ```
 
-Copy the printed service env into your tool server:
+In another terminal, run the repo's wrapped tool example:
+
+```bash
+node --run example:tool
+node --run actions
+```
+
+or open:
+
+```text
+http://localhost:8787/actions
+```
+
+The example reads `.sello/dev.json`, wraps a fake calendar handler, submits one encrypted receipt, and lets the owner verify it locally.
+
+For your own tool server, copy the printed service env:
 
 ```bash
 SELLO_SERVICE_ID=calendar.example.com/mcp/v1
@@ -37,12 +52,6 @@ Call your wrapped tool with the printed dev token. Then view actions:
 
 ```bash
 npx sello actions
-```
-
-or open:
-
-```text
-http://localhost:8787/actions
 ```
 
 ## Self-Hosted Production

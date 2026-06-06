@@ -51,6 +51,7 @@ The implementation includes a local end-to-end demo, compact JWS token verificat
 | Goal | Read |
 |------|------|
 | Add Sello in a few lines | [SDK Quickstart](docs/sdk-quickstart.md) |
+| Try a wrapped tool locally | `node --run dev`, then `node --run example:tool` |
 | Understand the protocol | [SPEC.md](SPEC.md) Quick Start |
 | Run the local demo | `node --run demo` |
 | Run the test suite | `node --run test` |
@@ -78,6 +79,19 @@ npx sello actions --token <agent-token>
 ```
 
 Sello works with your own log server. `sello.build` is optional convenience, not a protocol requirement.
+
+To try the repo's local loop:
+
+```bash
+# Terminal 1
+node --run dev
+
+# Terminal 2
+node --run example:tool
+node --run actions
+```
+
+The example wraps a fake calendar tool, emits a service-signed encrypted receipt, and lets the owner verify it from the local action log.
 
 ## The First 10 Minutes
 

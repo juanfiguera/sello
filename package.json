@@ -17,6 +17,7 @@
     "sello-demo": "./src/cli/demo.ts"
   },
   "files": [
+    "examples",
     "src",
     "fixtures/vectors",
     "docs",
@@ -25,8 +26,11 @@
     "LICENSE"
   ],
   "scripts": {
+    "actions": "node --experimental-strip-types src/cli/sello.ts actions",
     "bench": "node --experimental-strip-types src/cli/bench.ts",
     "demo": "node --experimental-strip-types src/cli/demo.ts",
+    "dev": "node --experimental-strip-types src/cli/sello.ts dev",
+    "example:tool": "node --experimental-strip-types examples/quickstart-tool.ts",
     "pack:check": "npm pack --dry-run",
     "test": "node --test --experimental-strip-types"
   },
