@@ -5,6 +5,8 @@ Use this checklist before publishing a Sello npm release.
 ## Preflight
 
 - Confirm `git status --short` is clean.
+- Confirm `node -v` is `v24.0.0` or newer.
+- If multiple Node versions are installed, confirm `PATH` resolves `node` to Node 24 before running package scripts.
 - Confirm `package.json` has the intended version.
 - Confirm `README.md` and `docs/sdk-quickstart.md` match the current CLI and examples.
 - Confirm the paper link and local PDF are current, if the paper changed.
@@ -22,6 +24,7 @@ Fresh clone smoke test:
 tmpdir=$(mktemp -d)
 git clone https://github.com/juanfiguera/sello.git "$tmpdir/sello"
 cd "$tmpdir/sello"
+node -v # must be v24.0.0 or newer
 node --run test
 npm pack --dry-run
 node --experimental-strip-types src/cli/sello.ts --help
