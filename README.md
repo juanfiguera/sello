@@ -53,6 +53,7 @@ Sello currently requires Node.js 22.7 or newer.
 | Goal | Read |
 |------|------|
 | Add Sello in a few lines | [SDK Quickstart](docs/sdk-quickstart.md) |
+| Emit your first receipt | `npx sello dev`, then `npx sello emit-demo` |
 | Try a wrapped tool locally | `node --run dev`, then `node --run example:tool` |
 | Try an MCP-style tool call | `node --run dev`, then `node --run example:mcp` |
 | Understand the protocol | [SPEC.md](SPEC.md) Quick Start |
@@ -97,6 +98,23 @@ node --run actions
 The example wraps a fake calendar tool, emits a service-signed encrypted receipt, and lets the owner verify it from the local action log.
 
 For an MCP-shaped `tools/call` boundary, run `node --run example:mcp` instead of `node --run example:tool`.
+
+To try the published package from a fresh project:
+
+```bash
+# Terminal 1
+npx sello dev
+
+# Terminal 2
+npx sello emit-demo
+npx sello actions
+```
+
+To see the tiny emitter code:
+
+```bash
+npx sello init-demo
+```
 
 ## The First 10 Minutes
 

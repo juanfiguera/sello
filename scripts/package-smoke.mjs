@@ -44,6 +44,10 @@ try {
     "import('sello').then(({ sello }) => { if (typeof sello.service !== 'function') throw new Error('missing sello.service'); })",
   ], { cwd: projectDir });
   run(npxCommand, ["--no-install", "sello", "--help"], { cwd: projectDir });
+  run(npxCommand, ["--no-install", "sello", "init-demo"], { cwd: projectDir });
+  if (!existsSync(join(projectDir, "emit-receipt.mjs"))) {
+    throw new Error("sello init-demo did not create emit-receipt.mjs");
+  }
   run(npxCommand, ["--no-install", "sello", "dev", "--dry-run"], { cwd: projectDir });
 
   console.log("Package smoke test passed.");

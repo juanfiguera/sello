@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync } from "node:fs";
+import { spawn, spawnSync } from "node:child_process";
+import { createServer, type IncomingMessage, type Server } from "node:http";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -31,6 +32,8 @@ describe("sello CLI", () => {
 
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, /sello dev/);
+    assert.match(result.stdout, /sello emit-demo/);
+    assert.match(result.stdout, /sello init-demo/);
     assert.match(result.stdout, /sello actions/);
     assert.match(result.stdout, /sello keys service/);
   });
@@ -92,6 +95,106 @@ describe("sello CLI", () => {
     assert.equal(typeof state.agentToken, "string");
   });
 
+  it("scaffolds a demo receipt emitter", () => {
+    const cwd = makeTempCwd();
+    const result = runSello(["init-demo"], { cwd });
+    const outputPath = join(cwd, "emit-receipt.mjs");
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /Created emit-receipt\.mjs/);
+    assert.equal(existsSync(outputPath), true);
+
+    const source = readFileSync(outputPath, "utf8");
+    assert.match(source, /import \{ canonicalJsonBytes, sello \} from "sello"/);
+    assert.match(source, /calendar\.create_event/);
+    assert.match(source, /authorizationToken: state\.agentToken/);
+  });
+
+  it("does not overwrite the demo emitter without --force", () => {
+    const cwd = makeTempCwd();
+
+    assert.equal(runSello(["init-demo"], { cwd }).status, 0);
+
+    const result = runSello(["init-demo"], { cwd });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /emit-receipt\.mjs already exists/);
+  });
+
+  it("reports missing dev state before emitting a demo receipt", () => {
+    const result = runSello(["emit-demo"], { cwd: makeTempCwd() });
+
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /Run `sello dev` first/);
+  });
+
+  it("emits a demo receipt to the local dev log", async (context) => {
+    const cwd = makeTempCwd();
+    const port = await freePort();
+    if (port === undefined) {
+      context.skip("localhost listeners are unavailable in this sandbox");
+      return;
+    }
+
+    const stateResult = runSello([
+      "dev",
+      "--port",
+      String(port),
+      "--dry-run",
+    ], { cwd });
+    let appendBody: Record<string, unknown> | undefined;
+    const server = createServer(async (request, response) => {
+      if (request.method !== "POST" || request.url !== "/api/entries") {
+        response.writeHead(404);
+        response.end();
+        return;
+      }
+
+      appendBody = await readRequestJson(request);
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(JSON.stringify({
+        logUrl: appendBody.logUrl,
+        index: 0,
+        integratedTime: appendBody.integratedTime,
+        envelope: appendBody.envelope,
+        proof: {},
+      }));
+    });
+
+    assert.equal(stateResult.status, 0, stateResult.stderr);
+    const statePath = join(cwd, ".sello", "dev.json");
+    const state = JSON.parse(readFileSync(statePath, "utf8"));
+    state.logEndpoint = `http://127.0.0.1:${port}/api`;
+    writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`);
+
+    try {
+      await listen(server, port);
+    } catch (error) {
+      if (isListenUnavailable(error)) {
+        context.skip("localhost listeners are unavailable in this sandbox");
+        return;
+      }
+
+      throw error;
+    }
+
+    try {
+      const result = await runSelloAsync([
+        "emit-demo",
+        "--title",
+        "CLI emitted receipt",
+      ], { cwd });
+
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(result.stdout, /Emitted demo Sello receipt/);
+      assert.match(result.stdout, /evt_cli_emitted_receipt/);
+      assert.match(result.stdout, /sello actions/);
+      assert.equal(appendBody?.logUrl, `https://localhost:${port}/api`);
+      assert.equal(typeof appendBody?.envelope, "string");
+    } finally {
+      await close(server);
+    }
+  });
+
   it("rejects invalid dev ports", () => {
     const result = runSello(["dev", "--port", "0", "--dry-run"], {
       cwd: makeTempCwd(),
@@ -133,6 +236,36 @@ function runSello(
   );
 }
 
+function runSelloAsync(
+  args: string[] = [],
+  options: { cwd?: string; env?: Record<string, string> } = {},
+): Promise<{ status: number | null; stdout: string; stderr: string }> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(
+      process.execPath,
+      ["--experimental-strip-types", selloCli, ...args],
+      {
+        cwd: options.cwd ?? process.cwd(),
+        env: cleanEnv(options.env),
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
+    const stdout: Buffer[] = [];
+    const stderr: Buffer[] = [];
+
+    child.stdout.on("data", (chunk) => stdout.push(chunk));
+    child.stderr.on("data", (chunk) => stderr.push(chunk));
+    child.on("error", reject);
+    child.on("close", (status) => {
+      resolve({
+        status,
+        stdout: Buffer.concat(stdout).toString("utf8"),
+        stderr: Buffer.concat(stderr).toString("utf8"),
+      });
+    });
+  });
+}
+
 function cleanEnv(overrides: Record<string, string> = {}): NodeJS.ProcessEnv {
   const env = { ...process.env };
   for (const key of SELLO_ENV_KEYS) {
@@ -143,4 +276,69 @@ function cleanEnv(overrides: Record<string, string> = {}): NodeJS.ProcessEnv {
 
 function makeTempCwd(): string {
   return mkdtempSync(join(tmpdir(), "sello-cli-test-"));
+}
+
+function freePort(): Promise<number | undefined> {
+  const server = createServer();
+  return new Promise((resolve, reject) => {
+    server.on("error", (error) => {
+      if (isListenUnavailable(error)) {
+        resolve(undefined);
+        return;
+      }
+
+      reject(error);
+    });
+    server.listen(0, "127.0.0.1", () => {
+      const address = server.address();
+      if (!address || typeof address === "string") {
+        reject(new Error("failed to allocate test port"));
+        return;
+      }
+
+      const { port } = address;
+      server.close((error) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(port);
+        }
+      });
+    });
+  });
+}
+
+function listen(server: Server, port: number): Promise<void> {
+  return new Promise((resolve, reject) => {
+    server.on("error", reject);
+    server.listen(port, "127.0.0.1", resolve);
+  });
+}
+
+function close(server: Server): Promise<void> {
+  return new Promise((resolve, reject) => {
+    server.close((error) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve();
+      }
+    });
+  });
+}
+
+async function readRequestJson(request: IncomingMessage) {
+  const chunks: Buffer[] = [];
+  for await (const chunk of request) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+}
+
+function isListenUnavailable(error: unknown): boolean {
+  return isRecord(error) && error.code === "EPERM" && error.syscall === "listen";
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }

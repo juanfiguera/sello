@@ -1,7 +1,7 @@
 #!/usr/bin/env -S node --experimental-strip-types
 
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { generateEd25519KeyPair } from "../cose/sign1.ts";
@@ -9,6 +9,7 @@ import { deriveTokenIdentifiers, sha256, toHex } from "../crypto/identifiers.ts"
 import { generateHpkeKeyPair } from "../hpke/receipt.ts";
 import { type CanonicalLogUrl } from "../log/canonical-url.ts";
 import { MockTransparencyLog } from "../log/mock-log.ts";
+import { canonicalJsonBytes } from "../mcp/middleware.ts";
 import { verifyReceipts } from "../owner/verify.ts";
 import {
   loadSignedRegistry,
@@ -26,10 +27,12 @@ import {
 } from "../sdk/keys.ts";
 import {
   deserializeEntry,
+  http as httpLog,
   queryHttpLogByTokenRef,
   serializeEntry,
   toCanonicalLogUrl,
 } from "../sdk/logs.ts";
+import { createSelloService } from "../sdk/service.ts";
 
 type DevState = {
   serviceId: string;
@@ -56,6 +59,12 @@ try {
       break;
     case "dev":
       await devCommand(process.argv.slice(3));
+      break;
+    case "emit-demo":
+      await emitDemoCommand(process.argv.slice(3));
+      break;
+    case "init-demo":
+      initDemoCommand(process.argv.slice(3));
       break;
     case "keys":
       keysCommand(process.argv.slice(3));
@@ -155,6 +164,75 @@ async function devCommand(args: string[]): Promise<void> {
   server.listen(port, () => {
     printDevConfig(port, state);
   });
+}
+
+async function emitDemoCommand(args: string[]): Promise<void> {
+  const state = loadDevStateOrThrow(
+    "missing local Sello dev state. Run `sello dev` first, then run `sello emit-demo` in another terminal from the same directory.",
+  );
+  const title = readFlag(args, "--title") ?? "Test Sello receipt";
+  const receipts = createSelloService({
+    service: state.serviceId,
+    serviceKey: state.serviceKey,
+    tokenIssuer: state.tokenIssuerPublicKey,
+    log: httpLog(state.logUrl, { endpoint: state.logEndpoint }),
+    submit: { mode: "await" },
+  });
+  const createEvent = receipts.tool<DemoEventRequest, DemoEventResponse>(
+    "calendar.create_event",
+    async (request) => ({
+      id: `evt_${slug(request.title)}`,
+      calendarId: request.calendarId,
+      title: request.title,
+      status: "created",
+      createdAt: new Date().toISOString(),
+    }),
+    {
+      canonicalizeInput: (request) => canonicalJsonBytes({
+        calendarId: request.calendarId,
+        title: request.title,
+        start: request.start,
+        attendees: request.attendees,
+      }),
+    },
+  );
+  const response = await createEvent({
+    authorizationToken: state.agentToken,
+    calendarId: "demo-calendar",
+    title,
+    start: "2026-06-05T17:00:00Z",
+    attendees: ["ada@example.com", "grace@example.com"],
+  });
+
+  await receipts.flush();
+
+  console.log("Emitted demo Sello receipt.");
+  console.log(JSON.stringify(response, null, 2));
+  console.log("");
+  console.log("View verified actions with:");
+  console.log("  sello actions");
+  console.log("");
+  console.log("Or open:");
+  console.log(`  ${actionViewerUrl(state)}`);
+}
+
+function initDemoCommand(args: string[]): void {
+  const output = readFlag(args, "--output") ?? "emit-receipt.mjs";
+  const force = args.includes("--force");
+
+  if (existsSync(output) && !force) {
+    throw new TypeError(`${output} already exists. Pass --force to overwrite it.`);
+  }
+
+  writeFileSync(output, demoEmitterSource(), { mode: 0o644 });
+
+  console.log(`Created ${output}`);
+  console.log("");
+  console.log("Run:");
+  console.log("  npm install sello");
+  console.log("  npx sello dev");
+  console.log(`  node ${output}`);
+  console.log("  npx sello actions");
 }
 
 function keysCommand(args: string[]): void {
@@ -339,6 +417,14 @@ function loadDevStateIfPresent(): DevState | undefined {
   }
 }
 
+function loadDevStateOrThrow(message: string): DevState {
+  const state = loadDevStateIfPresent();
+  if (!state) {
+    throw new TypeError(message);
+  }
+  return state;
+}
+
 function devStatePath(): string {
   return join(process.cwd(), ".sello", "dev.json");
 }
@@ -478,6 +564,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function printHelp(): void {
   console.log(`Usage:
   sello dev [--port 8787] [--service service-id] [--dry-run]
+  sello emit-demo [--title title]
+  sello init-demo [--output emit-receipt.mjs] [--force]
   sello actions [--token agent-token]
   sello keys service
   sello inspect-env
@@ -513,4 +601,80 @@ function enforceNodeVersion(): void {
       `Sello requires Node >=22.7.0; current Node is ${process.versions.node}`,
     );
   }
+}
+
+type DemoEventRequest = {
+  authorizationToken: string;
+  calendarId: string;
+  title: string;
+  start: string;
+  attendees: string[];
+};
+
+type DemoEventResponse = {
+  id: string;
+  calendarId: string;
+  title: string;
+  status: "created";
+  createdAt: string;
+};
+
+function actionViewerUrl(state: DevState): string {
+  const endpoint = new URL(state.logEndpoint);
+  return `${endpoint.origin}/actions`;
+}
+
+function slug(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 40);
+}
+
+function demoEmitterSource(): string {
+  return `import { readFileSync } from "node:fs";
+import { canonicalJsonBytes, sello } from "sello";
+
+const state = JSON.parse(readFileSync(".sello/dev.json", "utf8"));
+
+const receipts = sello.service({
+  service: state.serviceId,
+  serviceKey: state.serviceKey,
+  tokenIssuer: state.tokenIssuerPublicKey,
+  log: sello.logs.http(state.logUrl, { endpoint: state.logEndpoint }),
+  submit: { mode: "await" },
+});
+
+const createEvent = receipts.tool(
+  "calendar.create_event",
+  async (request) => ({
+    id: "evt_test_sello_receipt",
+    calendarId: request.calendarId,
+    title: request.title,
+    status: "created",
+    createdAt: new Date().toISOString(),
+  }),
+  {
+    canonicalizeInput: (request) =>
+      canonicalJsonBytes({
+        calendarId: request.calendarId,
+        title: request.title,
+        start: request.start,
+        attendees: request.attendees,
+      }),
+  },
+);
+
+const result = await createEvent({
+  authorizationToken: state.agentToken,
+  calendarId: "demo-calendar",
+  title: "Test Sello receipt",
+  start: "2026-06-05T17:00:00Z",
+  attendees: ["ada@example.com", "grace@example.com"],
+});
+
+await receipts.flush();
+console.log(result);
+`;
 }

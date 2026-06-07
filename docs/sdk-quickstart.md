@@ -18,6 +18,23 @@ The service process emits receipts. It does not need the owner private key.
 
 ## Local Development
 
+From a new project, the shortest loop is:
+
+```bash
+# Terminal 1
+npx sello dev
+
+# Terminal 2
+npx sello emit-demo
+npx sello actions
+```
+
+To write the tiny emitter file into your project:
+
+```bash
+npx sello init-demo
+```
+
 Inside this repo, start the local log and action viewer:
 
 ```bash
