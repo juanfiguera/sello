@@ -1,6 +1,6 @@
 {
   "name": "sello",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Reference implementation of the Sello protocol for service-signed AI agent receipts.",
   "type": "module",
   "license": "Apache-2.0",
@@ -31,6 +31,7 @@
     "bench": "node --experimental-strip-types src/cli/bench.ts",
     "demo": "node --experimental-strip-types src/cli/demo.ts",
     "dev": "node --experimental-strip-types src/cli/sello.ts dev",
+    "example:mcp:minimal": "node --test --experimental-strip-types test/examples/mcp-minimal-server.test.ts",
     "example:mcp": "node --experimental-strip-types examples/mcp-tool-server.ts",
     "example:tool": "node --experimental-strip-types examples/quickstart-tool.ts",
     "build": "node --disable-warning=ExperimentalWarning scripts/build-dist.mjs",

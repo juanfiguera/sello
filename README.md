@@ -81,6 +81,7 @@ The implementation includes a local end-to-end demo, compact JWS token verificat
 | Emit your first receipt | `npx --yes sello dev`, then `npx --yes sello emit-demo` |
 | Try a wrapped tool locally | `node --run dev`, then `node --run example:tool` |
 | Try an MCP-style tool call | `node --run dev`, then `node --run example:mcp` |
+| See a minimal MCP integration | [examples/mcp-minimal-server.ts](examples/mcp-minimal-server.ts) |
 | Understand the protocol | [SPEC.md](SPEC.md) Quick Start |
 | Run the local demo | `node --run demo` |
 | Run the test suite | `node --run test` |
@@ -131,6 +132,8 @@ node --run actions
 The example wraps a fake calendar tool, emits a service-signed encrypted receipt, and lets the owner verify it from the local action log.
 
 For an MCP-shaped `tools/call` boundary, run `node --run example:mcp` instead of `node --run example:tool`.
+
+For a smaller production-shaped MCP example, see [examples/mcp-minimal-server.ts](examples/mcp-minimal-server.ts). It wraps one `tools/call` handler with `sello.service()` and leaves unknown tools unreceipted.
 
 ## The First 10 Minutes
 
