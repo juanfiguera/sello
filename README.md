@@ -15,6 +15,33 @@ agent calls service
   -> owner fetches, verifies, decrypts
 ```
 
+## Try It
+
+Requires Node.js 22.7 or newer.
+
+From a new project or temporary folder:
+
+```bash
+# Terminal 1
+npx --yes sello dev
+
+# Terminal 2
+npx --yes sello emit-demo
+npx --yes sello actions
+```
+
+Then open:
+
+```text
+http://localhost:8787/actions
+```
+
+To see the tiny wrapped-tool source:
+
+```bash
+npx --yes sello init-demo
+```
+
 ## Why Sello?
 
 Most agent logs are written by the same system whose behavior they describe. If the agent, runtime, or operator is compromised, those logs can be incomplete or false.
@@ -48,12 +75,10 @@ The implementation includes a local end-to-end demo, compact JWS token verificat
 
 ## Start Here
 
-Sello currently requires Node.js 22.7 or newer.
-
 | Goal | Read |
 |------|------|
 | Add Sello in a few lines | [SDK Quickstart](docs/sdk-quickstart.md) |
-| Emit your first receipt | `npx sello dev`, then `npx sello emit-demo` |
+| Emit your first receipt | `npx --yes sello dev`, then `npx --yes sello emit-demo` |
 | Try a wrapped tool locally | `node --run dev`, then `node --run example:tool` |
 | Try an MCP-style tool call | `node --run dev`, then `node --run example:mcp` |
 | Understand the protocol | [SPEC.md](SPEC.md) Quick Start |
@@ -98,23 +123,6 @@ node --run actions
 The example wraps a fake calendar tool, emits a service-signed encrypted receipt, and lets the owner verify it from the local action log.
 
 For an MCP-shaped `tools/call` boundary, run `node --run example:mcp` instead of `node --run example:tool`.
-
-To try the published package from a fresh project:
-
-```bash
-# Terminal 1
-npx sello dev
-
-# Terminal 2
-npx sello emit-demo
-npx sello actions
-```
-
-To see the tiny emitter code:
-
-```bash
-npx sello init-demo
-```
 
 ## The First 10 Minutes
 
