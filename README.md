@@ -214,10 +214,10 @@ Much of this prior work surfaced after Sello's design had already converged on s
 - Use verifiable log integrated time for revocation decisions, not the receipt timestamp.
 - Deduplicate only on the full spec key, including action type and input/output hashes.
 
-## License
-
-Apache 2.0. See [LICENSE](LICENSE).
-
 ## Feedback
 
 Issues and pull requests are welcome. This is an early draft; adversarial review is the point.
+
+## License
+
+Apache 2.0. See [LICENSE](LICENSE).
