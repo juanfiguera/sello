@@ -247,11 +247,14 @@ function initDemoCommand(args: string[]): void {
 
   console.log(`Created ${output}`);
   console.log("");
-  console.log("Run:");
-  console.log("  npm install sello");
+  console.log("Terminal 1: keep the local dev log running");
   console.log("  npx sello dev");
+  console.log("");
+  console.log("Terminal 2: emit and view a receipt");
   console.log(`  node ${output}`);
   console.log("  npx sello actions");
+  console.log("");
+  console.log("Then open http://localhost:8787/actions");
 }
 
 function keysCommand(args: string[]): void {

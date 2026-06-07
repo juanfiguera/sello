@@ -106,6 +106,11 @@ describe("sello CLI", () => {
 
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, /Created emit-receipt\.mjs/);
+    assert.match(result.stdout, /Terminal 1: keep the local dev log running/);
+    assert.match(result.stdout, /Terminal 2: emit and view a receipt/);
+    assert.match(result.stdout, /node emit-receipt\.mjs/);
+    assert.match(result.stdout, /http:\/\/localhost:8787\/actions/);
+    assert.doesNotMatch(result.stdout, /npm install sello/);
     assert.equal(existsSync(outputPath), true);
 
     const source = readFileSync(outputPath, "utf8");
