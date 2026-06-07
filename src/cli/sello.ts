@@ -47,6 +47,25 @@ type DevState = {
   registryJson: string;
 };
 
+type ActionsViewModel = {
+  receipts: {
+    integratedTime: string;
+    serviceIdentifier: string;
+    actionType: string;
+    resultStatus: string;
+    status: string;
+    logUrl: string;
+    logCompleteness: string;
+    sameSecondActivity: boolean;
+  }[];
+  rejected: {
+    code: string;
+    message: string;
+    logUrl?: string;
+    integratedTime?: string;
+  }[];
+};
+
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
 const command = process.argv[2] ?? "help";
@@ -286,13 +305,14 @@ async function handleDevRequest(input: {
   const url = new URL(request.url ?? "/", `http://${request.headers.host ?? "localhost"}`);
 
   if (request.method === "GET" && (url.pathname === "/" || url.pathname === "/actions")) {
-    const result = verifyReceipts({
-      authorizationTokenBytes: textEncoder.encode(state.agentToken),
-      trustedLogs: [log],
-      registry,
-      ownerPrivateKey: normalizeHpkePrivateKey(state.ownerKey),
-    });
+    const result = verifyDevActions({ log, state, registry });
     sendHtml(response, renderActionsHtml(result));
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/actions") {
+    const result = verifyDevActions({ log, state, registry });
+    sendJson(response, 200, actionsViewModel(result));
     return;
   }
 
@@ -325,6 +345,19 @@ async function handleDevRequest(input: {
   }
 
   sendJson(response, 404, { error: "not found" });
+}
+
+function verifyDevActions(input: {
+  log: MockTransparencyLog;
+  state: DevState;
+  registry: ReturnType<typeof parseRegistry>;
+}): ReturnType<typeof verifyReceipts> {
+  return verifyReceipts({
+    authorizationTokenBytes: textEncoder.encode(input.state.agentToken),
+    trustedLogs: [input.log],
+    registry: input.registry,
+    ownerPrivateKey: normalizeHpkePrivateKey(input.state.ownerKey),
+  });
 }
 
 async function loadViewerRegistry(devState: DevState | undefined) {
@@ -462,16 +495,38 @@ function printActions(result: ReturnType<typeof verifyReceipts>): void {
   }
 }
 
+function actionsViewModel(result: ReturnType<typeof verifyReceipts>): ActionsViewModel {
+  return {
+    receipts: result.receipts.map((record) => ({
+      integratedTime: record.integratedTime,
+      serviceIdentifier: record.serviceIdentifier,
+      actionType: record.receipt["action-type"],
+      resultStatus: record.receipt["result-status"],
+      status: record.status,
+      logUrl: record.logUrl,
+      logCompleteness: record.logCompleteness,
+      sameSecondActivity: record.sameSecondActivity,
+    })),
+    rejected: result.rejected.map((record) => ({
+      code: record.code,
+      message: record.message,
+      ...(record.logUrl === undefined ? {} : { logUrl: record.logUrl }),
+      ...(record.integratedTime === undefined ? {} : { integratedTime: record.integratedTime }),
+    })),
+  };
+}
+
 function renderActionsHtml(result: ReturnType<typeof verifyReceipts>): string {
-  const rows = result.receipts.map((record) => `
+  const view = actionsViewModel(result);
+  const rows = view.receipts.map((record) => `
     <tr>
       <td>${escapeHtml(record.integratedTime)}</td>
       <td>${escapeHtml(record.serviceIdentifier)}</td>
-      <td>${escapeHtml(record.receipt["action-type"])}</td>
-      <td>${escapeHtml(record.receipt["result-status"])}</td>
+      <td>${escapeHtml(record.actionType)}</td>
+      <td>${escapeHtml(record.resultStatus)}</td>
       <td>${escapeHtml(record.status)}</td>
     </tr>`).join("");
-  const rejected = result.rejected.map((record) => `
+  const rejected = view.rejected.map((record) => `
     <li><strong>${escapeHtml(record.code)}</strong>: ${escapeHtml(record.message)}</li>`).join("");
 
   return `<!doctype html>

@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
-import { spawn, spawnSync } from "node:child_process";
+import {
+  spawn,
+  spawnSync,
+  type ChildProcessWithoutNullStreams,
+} from "node:child_process";
 import { createServer, type IncomingMessage, type Server } from "node:http";
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -195,6 +199,61 @@ describe("sello CLI", () => {
     }
   });
 
+  it("shows emitted receipts in the CLI, actions page, and actions API", async (context) => {
+    const cwd = makeTempCwd();
+    const port = await freePort();
+    if (port === undefined) {
+      context.skip("localhost listeners are unavailable in this sandbox");
+      return;
+    }
+
+    let devServer: StartedDevServer;
+    try {
+      devServer = await startDevServer(port, cwd);
+    } catch (error) {
+      if (isDevServerListenUnavailable(error)) {
+        context.skip("localhost listeners are unavailable in this sandbox");
+        return;
+      }
+
+      throw error;
+    }
+
+    try {
+      const emitResult = await runSelloAsync([
+        "emit-demo",
+        "--title",
+        "Visible in the browser",
+      ], { cwd });
+      assert.equal(emitResult.status, 0, emitResult.stderr);
+
+      const actionsResult = await runSelloAsync(["actions"], { cwd });
+      assert.equal(actionsResult.status, 0, actionsResult.stderr);
+      assert.match(actionsResult.stdout, /calendar\.create_event\s+success/);
+
+      const pageResponse = await fetch(`http://127.0.0.1:${port}/actions`);
+      assert.equal(pageResponse.status, 200);
+      const pageHtml = await pageResponse.text();
+      assert.match(pageHtml, /Sello Actions/);
+      assert.match(pageHtml, /calendar\.example\.com\/mcp\/v1/);
+      assert.match(pageHtml, /calendar\.create_event/);
+      assert.match(pageHtml, /success/);
+      assert.doesNotMatch(pageHtml, /No verified actions found yet/);
+
+      const apiResponse = await fetch(`http://127.0.0.1:${port}/api/actions`);
+      assert.equal(apiResponse.status, 200);
+      const api = await apiResponse.json();
+      assert.equal(api.receipts.length, 1);
+      assert.equal(api.receipts[0].serviceIdentifier, "calendar.example.com/mcp/v1");
+      assert.equal(api.receipts[0].actionType, "calendar.create_event");
+      assert.equal(api.receipts[0].resultStatus, "success");
+      assert.equal(api.receipts[0].status, "valid");
+      assert.equal(api.rejected.length, 0);
+    } finally {
+      await stopDevServer(devServer);
+    }
+  });
+
   it("rejects invalid dev ports", () => {
     const result = runSello(["dev", "--port", "0", "--dry-run"], {
       cwd: makeTempCwd(),
@@ -263,6 +322,79 @@ function runSelloAsync(
         stderr: Buffer.concat(stderr).toString("utf8"),
       });
     });
+  });
+}
+
+type StartedDevServer = {
+  child: ChildProcessWithoutNullStreams;
+  stdout: string;
+  stderr: string;
+};
+
+function startDevServer(port: number, cwd: string): Promise<StartedDevServer> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(
+      process.execPath,
+      ["--experimental-strip-types", selloCli, "dev", "--port", String(port)],
+      {
+        cwd,
+        env: cleanEnv(),
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
+    const server: StartedDevServer = { child, stdout: "", stderr: "" };
+    let settled = false;
+    const timeout = setTimeout(() => {
+      finish(reject, new Error(`timed out waiting for dev server\n${server.stderr}`));
+    }, 5_000);
+
+    function finish<T>(
+      callback: (value: T) => void,
+      value: T,
+    ): void {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      clearTimeout(timeout);
+      callback(value);
+    }
+
+    child.stdout.on("data", (chunk) => {
+      server.stdout += chunk.toString();
+      if (server.stdout.includes(`Sello dev log running at http://localhost:${port}/actions`)) {
+        finish(resolve, server);
+      }
+    });
+    child.stderr.on("data", (chunk) => {
+      server.stderr += chunk.toString();
+    });
+    child.on("error", (error) => finish(reject, error));
+    child.on("exit", (status) => {
+      finish(
+        reject,
+        new Error(`dev server exited with ${status}\n${server.stderr}`),
+      );
+    });
+  });
+}
+
+function stopDevServer(server: StartedDevServer): Promise<void> {
+  return new Promise((resolve) => {
+    if (server.child.killed) {
+      resolve();
+      return;
+    }
+
+    const forceKill = setTimeout(() => {
+      server.child.kill("SIGKILL");
+    }, 1_000);
+    server.child.once("exit", () => {
+      clearTimeout(forceKill);
+      resolve();
+    });
+    server.child.kill();
   });
 }
 
@@ -337,6 +469,10 @@ async function readRequestJson(request: IncomingMessage) {
 
 function isListenUnavailable(error: unknown): boolean {
   return isRecord(error) && error.code === "EPERM" && error.syscall === "listen";
+}
+
+function isDevServerListenUnavailable(error: unknown): boolean {
+  return isListenUnavailable(error) || String(error).includes("listen EPERM");
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
