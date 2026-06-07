@@ -80,6 +80,14 @@ Call your wrapped tool with the printed dev token. Then view actions:
 npx sello actions
 ```
 
+In local dev, `sello dev` prints and saves the token:
+
+```bash
+SELLO_ACTION_TOKEN=eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9...
+```
+
+`npx sello actions` reads that token from `.sello/dev.json`. Pass `--token` only when you want to inspect receipts for a specific agent authorization token.
+
 ## Self-Hosted Production
 
 Use your own Sello-compatible log server:

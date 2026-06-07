@@ -107,6 +107,14 @@ Then inspect verified actions:
 npx sello actions --token <agent-token>
 ```
 
+In local dev, `sello dev` prints and saves a demo token:
+
+```bash
+SELLO_ACTION_TOKEN=eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9...
+```
+
+You usually do not need to copy it. `npx sello actions` reads the latest dev token from `.sello/dev.json`. Use `--token` when you want to inspect receipts for a specific agent authorization token from your own system.
+
 Sello works with your own log server. `sello.build` is optional convenience, not a protocol requirement.
 
 To try the repo's local loop:
@@ -213,11 +221,3 @@ Apache 2.0. See [LICENSE](LICENSE).
 ## Feedback
 
 Issues and pull requests are welcome. This is an early draft; adversarial review is the point.
-
-## Development
-
-The current dependency-free test command is:
-
-```bash
-node --run test
-```
