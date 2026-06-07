@@ -35,6 +35,14 @@ To write the tiny emitter file into your project:
 npx --yes sello init-demo
 ```
 
+To write a dependency-free HTTP route example into your project:
+
+```bash
+npx --yes sello init-http-demo
+```
+
+The route example imports `sello`, reads the local dev config, verifies a bearer token, runs one `POST /calendar/events` handler, and emits a receipt.
+
 Inside this repo, start the local log and action viewer:
 
 ```bash

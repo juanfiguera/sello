@@ -85,6 +85,9 @@ try {
     case "init-demo":
       initDemoCommand(process.argv.slice(3));
       break;
+    case "init-http-demo":
+      initHttpDemoCommand(process.argv.slice(3));
+      break;
     case "keys":
       keysCommand(process.argv.slice(3));
       break;
@@ -252,6 +255,32 @@ function initDemoCommand(args: string[]): void {
   console.log("");
   console.log("Terminal 2: emit and view a receipt");
   console.log(`  node ${output}`);
+  console.log("  npx sello actions");
+  console.log("");
+  console.log("Then open http://localhost:8787/actions");
+}
+
+function initHttpDemoCommand(args: string[]): void {
+  const output = readFlag(args, "--output") ?? "sello-http-route.mjs";
+  const force = args.includes("--force");
+
+  if (existsSync(output) && !force) {
+    throw new TypeError(`${output} already exists. Pass --force to overwrite it.`);
+  }
+
+  writeFileSync(output, httpRouteDemoSource(), { mode: 0o644 });
+
+  console.log(`Created ${output}`);
+  console.log("");
+  console.log("Terminal 1: keep the local dev log running");
+  console.log("  npx sello dev");
+  console.log("");
+  console.log("Terminal 2: start the route");
+  console.log(`  node ${output}`);
+  console.log("");
+  console.log("Terminal 3: call the route and view the receipt");
+  console.log("  TOKEN=$(node -e 'console.log(JSON.parse(require(\"fs\").readFileSync(\".sello/dev.json\", \"utf8\")).agentToken)')");
+  console.log("  curl -sS -X POST http://localhost:8790/calendar/events -H \"authorization: Bearer $TOKEN\" -H \"content-type: application/json\" -d '{\"title\":\"Ship Sello\"}'");
   console.log("  npx sello actions");
   console.log("");
   console.log("Then open http://localhost:8787/actions");
@@ -651,6 +680,7 @@ function printHelp(): void {
   sello dev [--port 8787] [--service service-id] [--dry-run]
   sello emit-demo [--title title]
   sello init-demo [--output emit-receipt.mjs] [--force]
+  sello init-http-demo [--output sello-http-route.mjs] [--force]
   sello actions [--token agent-token]
   sello keys service
   sello inspect-env
@@ -761,5 +791,115 @@ const result = await createEvent({
 
 await receipts.flush();
 console.log(result);
+`;
+}
+
+function httpRouteDemoSource(): string {
+  return `import { createServer } from "node:http";
+import { readFileSync } from "node:fs";
+import { canonicalJsonBytes, sello } from "sello";
+
+const state = JSON.parse(readFileSync(".sello/dev.json", "utf8"));
+const port = Number(process.env.PORT ?? "8790");
+
+const receipts = sello.service({
+  service: state.serviceId,
+  serviceKey: state.serviceKey,
+  tokenIssuer: state.tokenIssuerPublicKey,
+  log: sello.logs.http(state.logUrl, { endpoint: state.logEndpoint }),
+  submit: { mode: "await" },
+});
+
+const createEvent = receipts.tool(
+  "http.POST /calendar/events",
+  async (request) => {
+    const title = readString(request.body.title, "title");
+    return {
+      id: "evt_" + slug(title),
+      title,
+      status: "created",
+      createdAt: new Date().toISOString(),
+    };
+  },
+  {
+    authorizationToken: (request) => request.authorizationToken,
+    canonicalizeInput: (request) =>
+      canonicalJsonBytes({
+        method: "POST",
+        path: "/calendar/events",
+        body: request.body,
+      }),
+    canonicalizeOutput: (response) => canonicalJsonBytes(response),
+  },
+);
+
+const server = createServer(async (request, response) => {
+  try {
+    const path = new URL(request.url ?? "/", "http://localhost").pathname;
+    if (request.method !== "POST" || path !== "/calendar/events") {
+      sendJson(response, 404, { error: "not found" });
+      return;
+    }
+
+    const body = await readJson(request);
+    const result = await createEvent({
+      authorizationToken: bearerToken(request.headers.authorization),
+      body,
+    });
+    await receipts.flush();
+    sendJson(response, 200, result);
+  } catch (error) {
+    sendJson(response, 400, {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+server.listen(port, () => {
+  console.log("Sello HTTP route demo running at http://localhost:" + port + "/calendar/events");
+  console.log("");
+  console.log("Call it with:");
+  console.log("  TOKEN=$(node -e 'console.log(JSON.parse(require(\\\"fs\\\").readFileSync(\\\".sello/dev.json\\\", \\\"utf8\\\")).agentToken)')");
+  console.log("  curl -sS -X POST http://localhost:" + port + "/calendar/events -H \\\"authorization: Bearer $TOKEN\\\" -H \\\"content-type: application/json\\\" -d '{\\\"title\\\":\\\"Ship Sello\\\"}'");
+});
+
+async function readJson(request) {
+  const chunks = [];
+  for await (const chunk of request) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  if (chunks.length === 0) {
+    return {};
+  }
+  return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+}
+
+function bearerToken(header) {
+  const value = Array.isArray(header) ? header[0] : header;
+  if (typeof value !== "string" || !value.startsWith("Bearer ")) {
+    throw new TypeError("missing Authorization: Bearer <token> header");
+  }
+  return value.slice("Bearer ".length);
+}
+
+function sendJson(response, statusCode, body) {
+  response.writeHead(statusCode, { "content-type": "application/json" });
+  response.end(JSON.stringify(body, null, 2) + "\\n");
+}
+
+function readString(value, name) {
+  if (typeof value !== "string" || value.length === 0) {
+    throw new TypeError(name + " must be a non-empty string");
+  }
+  return value;
+}
+
+function slug(value) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 40);
+}
 `;
 }

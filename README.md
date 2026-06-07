@@ -42,6 +42,12 @@ To see the tiny wrapped-tool source:
 npx --yes sello init-demo
 ```
 
+To scaffold a small HTTP route that emits receipts:
+
+```bash
+npx --yes sello init-http-demo
+```
+
 ## Why Sello?
 
 Most agent logs are written by the same system whose behavior they describe. If the agent, runtime, or operator is compromised, those logs can be incomplete or false.
@@ -79,6 +85,7 @@ The implementation includes a local end-to-end demo, compact JWS token verificat
 |------|------|
 | Add Sello in a few lines | [SDK Quickstart](docs/sdk-quickstart.md) |
 | Emit your first receipt | `npx --yes sello dev`, then `npx --yes sello emit-demo` |
+| Wrap one HTTP route | `npx --yes sello init-http-demo` |
 | Try a wrapped tool locally | `node --run dev`, then `node --run example:tool` |
 | Try an MCP-style tool call | `node --run dev`, then `node --run example:mcp` |
 | See a minimal MCP integration | [examples/mcp-minimal-server.ts](examples/mcp-minimal-server.ts) |
@@ -134,6 +141,8 @@ The example wraps a fake calendar tool, emits a service-signed encrypted receipt
 For an MCP-shaped `tools/call` boundary, run `node --run example:mcp` instead of `node --run example:tool`.
 
 For a smaller production-shaped MCP example, see [examples/mcp-minimal-server.ts](examples/mcp-minimal-server.ts). It wraps one `tools/call` handler with `sello.service()` and leaves unknown tools unreceipted.
+
+For an installed-project bridge from demo to app, run `npx sello init-http-demo`. It writes a small dependency-free HTTP route that imports `sello`, reads the local dev config, verifies a bearer token, runs a handler, and emits a receipt.
 
 ## The First 10 Minutes
 

@@ -48,6 +48,10 @@ try {
   if (!existsSync(join(projectDir, "emit-receipt.mjs"))) {
     throw new Error("sello init-demo did not create emit-receipt.mjs");
   }
+  run(npxCommand, ["--no-install", "sello", "init-http-demo"], { cwd: projectDir });
+  if (!existsSync(join(projectDir, "sello-http-route.mjs"))) {
+    throw new Error("sello init-http-demo did not create sello-http-route.mjs");
+  }
   run(npxCommand, ["--no-install", "sello", "dev", "--dry-run"], { cwd: projectDir });
 
   console.log("Package smoke test passed.");

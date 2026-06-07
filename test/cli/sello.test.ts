@@ -38,6 +38,7 @@ describe("sello CLI", () => {
     assert.match(result.stdout, /sello dev/);
     assert.match(result.stdout, /sello emit-demo/);
     assert.match(result.stdout, /sello init-demo/);
+    assert.match(result.stdout, /sello init-http-demo/);
     assert.match(result.stdout, /sello actions/);
     assert.match(result.stdout, /sello keys service/);
   });
@@ -127,6 +128,41 @@ describe("sello CLI", () => {
     const result = runSello(["init-demo"], { cwd });
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /emit-receipt\.mjs already exists/);
+  });
+
+  it("scaffolds an HTTP route demo", () => {
+    const cwd = makeTempCwd();
+    const result = runSello(["init-http-demo"], { cwd });
+    const outputPath = join(cwd, "sello-http-route.mjs");
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /Created sello-http-route\.mjs/);
+    assert.match(result.stdout, /Terminal 2: start the route/);
+    assert.match(result.stdout, /node sello-http-route\.mjs/);
+    assert.match(result.stdout, /curl -sS -X POST http:\/\/localhost:8790\/calendar\/events/);
+    assert.match(result.stdout, /npx sello actions/);
+    assert.equal(existsSync(outputPath), true);
+
+    const source = readFileSync(outputPath, "utf8");
+    assert.match(source, /import \{ canonicalJsonBytes, sello \} from "sello"/);
+    assert.match(source, /createServer/);
+    assert.match(source, /http\.POST \/calendar\/events/);
+    assert.match(source, /authorizationToken: \(request\) => request\.authorizationToken/);
+
+    const syntax = spawnSync(process.execPath, ["--check", outputPath], {
+      encoding: "utf8",
+    });
+    assert.equal(syntax.status, 0, syntax.stderr);
+  });
+
+  it("does not overwrite the HTTP route demo without --force", () => {
+    const cwd = makeTempCwd();
+
+    assert.equal(runSello(["init-http-demo"], { cwd }).status, 0);
+
+    const result = runSello(["init-http-demo"], { cwd });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /sello-http-route\.mjs already exists/);
   });
 
   it("reports missing dev state before emitting a demo receipt", () => {
