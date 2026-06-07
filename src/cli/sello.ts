@@ -505,10 +505,12 @@ function printDevConfig(port: number, state: DevState): void {
 }
 
 function enforceNodeVersion(): void {
-  const major = Number(process.versions.node.split(".")[0]);
-  if (major < 24) {
+  const [major = 0, minor = 0] = process.versions.node
+    .split(".")
+    .map((part) => Number(part));
+  if (major < 22 || (major === 22 && minor < 7)) {
     throw new TypeError(
-      `Sello requires Node >=24.0.0; current Node is ${process.versions.node}`,
+      `Sello requires Node >=22.7.0; current Node is ${process.versions.node}`,
     );
   }
 }

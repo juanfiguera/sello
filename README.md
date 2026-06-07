@@ -48,6 +48,8 @@ The implementation includes a local end-to-end demo, compact JWS token verificat
 
 ## Start Here
 
+Sello currently requires Node.js 22.7 or newer.
+
 | Goal | Read |
 |------|------|
 | Add Sello in a few lines | [SDK Quickstart](docs/sdk-quickstart.md) |

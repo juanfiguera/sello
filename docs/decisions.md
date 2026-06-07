@@ -2,7 +2,7 @@
 
 ## Initial Scaffold
 
-- Use plain TypeScript modules with Node 24's native type stripping for the first implementation slice.
+- Use plain TypeScript modules with Node 22.7+'s native type stripping for the first implementation slice.
 - Use Node's built-in test runner to avoid dependency installation before the crypto-library spike.
 - Keep `package.json` npm-compatible, but run tests with `node --run test` or the raw `node --test --experimental-strip-types` command while `npm` is unavailable in this workspace.
 - Start with token-derived identifiers because they require no third-party dependencies and exercise the spec's exact-byte handling rule.
@@ -75,5 +75,5 @@
 
 ## Demo Command
 
-- Ship a small `sello-demo` binary that runs through Node 24's native TypeScript type stripping.
+- Ship a small `sello-demo` binary that runs through Node 22.7+'s native TypeScript type stripping.
 - The demo prints success, error, and denied receipts as verified JSON, and `--tamper` appends a deliberately bad entry to show structured rejection output.

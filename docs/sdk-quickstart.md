@@ -2,6 +2,8 @@
 
 Sello's SDK is designed to make the first receipt easy: wrap a tool handler, run it, and inspect verified actions.
 
+Requires Node.js 22.7 or newer.
+
 ```ts
 import { sello } from "sello";
 
