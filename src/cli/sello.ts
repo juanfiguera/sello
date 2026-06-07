@@ -518,6 +518,8 @@ function actionsViewModel(result: ReturnType<typeof verifyReceipts>): ActionsVie
 
 function renderActionsHtml(result: ReturnType<typeof verifyReceipts>): string {
   const view = actionsViewModel(result);
+  const actionCount = view.receipts.length;
+  const rejectedCount = view.rejected.length;
   const rows = view.receipts.map((record) => `
     <tr>
       <td>${escapeHtml(record.integratedTime)}</td>
@@ -534,21 +536,46 @@ function renderActionsHtml(result: ReturnType<typeof verifyReceipts>): string {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="refresh" content="2">
   <title>Sello Actions</title>
   <style>
     body { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 40px; color: #17201d; }
+    header { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 28px; }
+    h1 { margin: 0; font-size: 40px; line-height: 1.1; }
+    h2 { margin: 32px 0 8px; font-size: 20px; }
+    code { background: #eef3f0; border-radius: 4px; padding: 2px 6px; }
     table { border-collapse: collapse; width: 100%; margin-top: 16px; }
     th, td { border-bottom: 1px solid #d8dfdc; padding: 10px 8px; text-align: left; }
     th { color: #52615b; font-weight: 600; }
+    .summary { color: #52615b; font-size: 15px; margin: 0; white-space: nowrap; }
     .empty { color: #52615b; margin-top: 16px; }
+    .empty p { margin: 8px 0; }
+    @media (max-width: 720px) {
+      body { margin: 24px; }
+      header { display: block; }
+      h1 { font-size: 32px; }
+      .summary { margin-top: 8px; white-space: normal; }
+      table { display: block; overflow-x: auto; }
+    }
   </style>
 </head>
 <body>
-  <h1>Sello Actions</h1>
-  ${rows ? `<table><thead><tr><th>Integrated time</th><th>Service</th><th>Action</th><th>Result</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>` : `<p class="empty">No verified actions found yet.</p>`}
-  ${rejected ? `<h2>Rejected receipts</h2><ul>${rejected}</ul>` : ""}
+  <header>
+    <h1>Sello Actions</h1>
+    <p class="summary">${escapeHtml(actionCountLabel(actionCount))}</p>
+  </header>
+  ${rows ? `<table><thead><tr><th>Integrated time</th><th>Service</th><th>Action</th><th>Result</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>` : `<section class="empty"><p>No verified actions yet.</p><p>In another terminal, run <code>npx sello emit-demo</code>.</p></section>`}
+  ${rejected ? `<h2>Rejected receipts</h2><p class="summary">${escapeHtml(rejectedCountLabel(rejectedCount))}</p><ul>${rejected}</ul>` : ""}
 </body>
 </html>`;
+}
+
+function actionCountLabel(count: number): string {
+  return count === 1 ? "1 verified action" : `${count} verified actions`;
+}
+
+function rejectedCountLabel(count: number): string {
+  return count === 1 ? "1 rejected receipt" : `${count} rejected receipts`;
 }
 
 function verifyHttpProof(entry: ReturnType<typeof deserializeEntry>): boolean {

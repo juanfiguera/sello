@@ -220,6 +220,14 @@ describe("sello CLI", () => {
     }
 
     try {
+      const emptyPageResponse = await fetch(`http://127.0.0.1:${port}/actions`);
+      assert.equal(emptyPageResponse.status, 200);
+      const emptyPageHtml = await emptyPageResponse.text();
+      assert.match(emptyPageHtml, /http-equiv="refresh" content="2"/);
+      assert.match(emptyPageHtml, /0 verified actions/);
+      assert.match(emptyPageHtml, /No verified actions yet/);
+      assert.match(emptyPageHtml, /npx sello emit-demo/);
+
       const emitResult = await runSelloAsync([
         "emit-demo",
         "--title",
@@ -235,10 +243,13 @@ describe("sello CLI", () => {
       assert.equal(pageResponse.status, 200);
       const pageHtml = await pageResponse.text();
       assert.match(pageHtml, /Sello Actions/);
+      assert.match(pageHtml, /http-equiv="refresh" content="2"/);
+      assert.match(pageHtml, /1 verified action/);
       assert.match(pageHtml, /calendar\.example\.com\/mcp\/v1/);
       assert.match(pageHtml, /calendar\.create_event/);
       assert.match(pageHtml, /success/);
-      assert.doesNotMatch(pageHtml, /No verified actions found yet/);
+      assert.doesNotMatch(pageHtml, /No verified actions yet/);
+      assert.doesNotMatch(pageHtml, /Rejected receipts/);
 
       const apiResponse = await fetch(`http://127.0.0.1:${port}/api/actions`);
       assert.equal(apiResponse.status, 200);
