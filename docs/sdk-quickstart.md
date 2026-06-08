@@ -48,6 +48,10 @@ npx --yes sello call-http-demo
 npx --yes sello actions
 ```
 
+## What Just Happened?
+
+`sello dev` created local development keys, a demo authorization token, a service registry, and a local transparency log. The wrapped tool or route verified the token before running your handler. After the handler returned, Sello signed an encrypted receipt for the observed action and submitted it to the local log. The log stored encrypted receipt data, not plaintext action details. `sello actions` used the owner key from local dev state to fetch, verify, decrypt, and print the action.
+
 Inside this repo, start the local log and action viewer:
 
 ```bash
