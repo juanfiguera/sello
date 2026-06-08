@@ -41,7 +41,12 @@ To write a dependency-free HTTP route example into your project:
 npx --yes sello init-http-demo
 ```
 
-The route example imports `sello`, reads the local dev config, verifies a bearer token, runs one `POST /calendar/events` handler, and emits a receipt.
+The route example imports `sello`, reads the local dev config, verifies a bearer token, runs one `POST /calendar/events` handler, and emits a receipt. With `npx sello dev` and the generated route running, call it with:
+
+```bash
+npx --yes sello call-http-demo
+npx --yes sello actions
+```
 
 Inside this repo, start the local log and action viewer:
 

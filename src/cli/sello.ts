@@ -82,6 +82,9 @@ try {
     case "emit-demo":
       await emitDemoCommand(process.argv.slice(3));
       break;
+    case "call-http-demo":
+      await callHttpDemoCommand(process.argv.slice(3));
+      break;
     case "init-demo":
       initDemoCommand(process.argv.slice(3));
       break;
@@ -238,6 +241,38 @@ async function emitDemoCommand(args: string[]): Promise<void> {
   console.log(`  ${actionViewerUrl(state)}`);
 }
 
+async function callHttpDemoCommand(args: string[]): Promise<void> {
+  const state = loadDevStateOrThrow(
+    "missing local Sello dev state. Run `sello dev` first, then run `sello call-http-demo` in another terminal from the same directory.",
+  );
+  const url = readFlag(args, "--url") ?? "http://localhost:8790/calendar/events";
+  const title = readFlag(args, "--title") ?? "Ship Sello";
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${state.agentToken}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ title }),
+  });
+  const responseText = await response.text();
+
+  if (!response.ok) {
+    throw new TypeError(
+      `HTTP route demo failed with HTTP ${response.status}: ${responseText.trim()}`,
+    );
+  }
+
+  console.log("Called Sello HTTP route demo.");
+  console.log(formatHttpDemoResponse(responseText));
+  console.log("");
+  console.log("View verified actions with:");
+  console.log("  sello actions");
+  console.log("");
+  console.log("Or open:");
+  console.log(`  ${actionViewerUrl(state)}`);
+}
+
 function initDemoCommand(args: string[]): void {
   const output = readFlag(args, "--output") ?? "emit-receipt.mjs";
   const force = args.includes("--force");
@@ -279,8 +314,7 @@ function initHttpDemoCommand(args: string[]): void {
   console.log(`  node ${output}`);
   console.log("");
   console.log("Terminal 3: call the route and view the receipt");
-  console.log("  TOKEN=$(node -e 'console.log(JSON.parse(require(\"fs\").readFileSync(\".sello/dev.json\", \"utf8\")).agentToken)')");
-  console.log("  curl -sS -X POST http://localhost:8790/calendar/events -H \"authorization: Bearer $TOKEN\" -H \"content-type: application/json\" -d '{\"title\":\"Ship Sello\"}'");
+  console.log("  npx sello call-http-demo");
   console.log("  npx sello actions");
   console.log("");
   console.log("Then open http://localhost:8787/actions");
@@ -679,6 +713,7 @@ function printHelp(): void {
   console.log(`Usage:
   sello dev [--port 8787] [--service service-id] [--dry-run]
   sello emit-demo [--title title]
+  sello call-http-demo [--url http://localhost:8790/calendar/events] [--title title]
   sello init-demo [--output emit-receipt.mjs] [--force]
   sello init-http-demo [--output sello-http-route.mjs] [--force]
   sello actions [--token agent-token]
@@ -737,6 +772,14 @@ type DemoEventResponse = {
 function actionViewerUrl(state: DevState): string {
   const endpoint = new URL(state.logEndpoint);
   return `${endpoint.origin}/actions`;
+}
+
+function formatHttpDemoResponse(responseText: string): string {
+  try {
+    return JSON.stringify(JSON.parse(responseText), null, 2);
+  } catch {
+    return responseText;
+  }
 }
 
 function slug(value: string): string {
@@ -858,9 +901,8 @@ const server = createServer(async (request, response) => {
 server.listen(port, () => {
   console.log("Sello HTTP route demo running at http://localhost:" + port + "/calendar/events");
   console.log("");
-  console.log("Call it with:");
-  console.log("  TOKEN=$(node -e 'console.log(JSON.parse(require(\\\"fs\\\").readFileSync(\\\".sello/dev.json\\\", \\\"utf8\\\")).agentToken)')");
-  console.log("  curl -sS -X POST http://localhost:" + port + "/calendar/events -H \\\"authorization: Bearer $TOKEN\\\" -H \\\"content-type: application/json\\\" -d '{\\\"title\\\":\\\"Ship Sello\\\"}'");
+  console.log("Call it from another terminal with:");
+  console.log("  npx sello call-http-demo");
 });
 
 async function readJson(request) {

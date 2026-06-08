@@ -46,6 +46,7 @@ To scaffold a small HTTP route that emits receipts:
 
 ```bash
 npx --yes sello init-http-demo
+npx --yes sello call-http-demo
 ```
 
 ## Why Sello?
@@ -85,7 +86,7 @@ The implementation includes a local end-to-end demo, compact JWS token verificat
 |------|------|
 | Add Sello in a few lines | [SDK Quickstart](docs/sdk-quickstart.md) |
 | Emit your first receipt | `npx --yes sello dev`, then `npx --yes sello emit-demo` |
-| Wrap one HTTP route | `npx --yes sello init-http-demo` |
+| Wrap one HTTP route | `npx --yes sello init-http-demo`, then `npx --yes sello call-http-demo` |
 | Try a wrapped tool locally | `node --run dev`, then `node --run example:tool` |
 | Try an MCP-style tool call | `node --run dev`, then `node --run example:mcp` |
 | See a minimal MCP integration | [examples/mcp-minimal-server.ts](examples/mcp-minimal-server.ts) |
@@ -142,7 +143,7 @@ For an MCP-shaped `tools/call` boundary, run `node --run example:mcp` instead of
 
 For a smaller production-shaped MCP example, see [examples/mcp-minimal-server.ts](examples/mcp-minimal-server.ts). It wraps one `tools/call` handler with `sello.service()` and leaves unknown tools unreceipted.
 
-For an installed-project bridge from demo to app, run `npx sello init-http-demo`. It writes a small dependency-free HTTP route that imports `sello`, reads the local dev config, verifies a bearer token, runs a handler, and emits a receipt.
+For an installed-project bridge from demo to app, run `npx sello init-http-demo`. It writes a small dependency-free HTTP route that imports `sello`, reads the local dev config, verifies a bearer token, runs a handler, and emits a receipt. With the local log and route running, `npx sello call-http-demo` sends the demo request for you.
 
 ## The First 10 Minutes
 

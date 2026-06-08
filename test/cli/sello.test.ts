@@ -37,6 +37,7 @@ describe("sello CLI", () => {
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, /sello dev/);
     assert.match(result.stdout, /sello emit-demo/);
+    assert.match(result.stdout, /sello call-http-demo/);
     assert.match(result.stdout, /sello init-demo/);
     assert.match(result.stdout, /sello init-http-demo/);
     assert.match(result.stdout, /sello actions/);
@@ -139,8 +140,10 @@ describe("sello CLI", () => {
     assert.match(result.stdout, /Created sello-http-route\.mjs/);
     assert.match(result.stdout, /Terminal 2: start the route/);
     assert.match(result.stdout, /node sello-http-route\.mjs/);
-    assert.match(result.stdout, /curl -sS -X POST http:\/\/localhost:8790\/calendar\/events/);
+    assert.match(result.stdout, /npx sello call-http-demo/);
     assert.match(result.stdout, /npx sello actions/);
+    assert.doesNotMatch(result.stdout, /TOKEN=\$\(node -e/);
+    assert.doesNotMatch(result.stdout, /curl -sS/);
     assert.equal(existsSync(outputPath), true);
 
     const source = readFileSync(outputPath, "utf8");
@@ -148,6 +151,8 @@ describe("sello CLI", () => {
     assert.match(source, /createServer/);
     assert.match(source, /http\.POST \/calendar\/events/);
     assert.match(source, /authorizationToken: \(request\) => request\.authorizationToken/);
+    assert.match(source, /npx sello call-http-demo/);
+    assert.doesNotMatch(source, /curl -sS/);
 
     const syntax = spawnSync(process.execPath, ["--check", outputPath], {
       encoding: "utf8",
@@ -163,6 +168,75 @@ describe("sello CLI", () => {
     const result = runSello(["init-http-demo"], { cwd });
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /sello-http-route\.mjs already exists/);
+  });
+
+  it("reports missing dev state before calling the HTTP route demo", () => {
+    const result = runSello(["call-http-demo"], { cwd: makeTempCwd() });
+
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /Run `sello dev` first/);
+  });
+
+  it("calls the HTTP route demo with the local dev token", async (context) => {
+    const cwd = makeTempCwd();
+    const port = await freePort();
+    if (port === undefined) {
+      context.skip("localhost listeners are unavailable in this sandbox");
+      return;
+    }
+
+    const stateResult = runSello(["dev", "--dry-run"], { cwd });
+    assert.equal(stateResult.status, 0, stateResult.stderr);
+    const state = JSON.parse(readFileSync(join(cwd, ".sello", "dev.json"), "utf8"));
+
+    let requestBody: Record<string, unknown> | undefined;
+    let authorization: string | undefined;
+    const server = createServer(async (request, response) => {
+      if (request.method !== "POST" || request.url !== "/calendar/events") {
+        response.writeHead(404);
+        response.end();
+        return;
+      }
+
+      authorization = request.headers.authorization;
+      requestBody = await readRequestJson(request);
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(JSON.stringify({
+        id: "evt_short_flow",
+        title: requestBody.title,
+        status: "created",
+      }));
+    });
+
+    try {
+      await listen(server, port);
+    } catch (error) {
+      if (isListenUnavailable(error)) {
+        context.skip("localhost listeners are unavailable in this sandbox");
+        return;
+      }
+
+      throw error;
+    }
+
+    try {
+      const result = await runSelloAsync([
+        "call-http-demo",
+        "--url",
+        `http://127.0.0.1:${port}/calendar/events`,
+        "--title",
+        "Short flow",
+      ], { cwd });
+
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(result.stdout, /Called Sello HTTP route demo/);
+      assert.match(result.stdout, /evt_short_flow/);
+      assert.match(result.stdout, /sello actions/);
+      assert.equal(authorization, `Bearer ${state.agentToken}`);
+      assert.deepEqual(requestBody, { title: "Short flow" });
+    } finally {
+      await close(server);
+    }
   });
 
   it("reports missing dev state before emitting a demo receipt", () => {
