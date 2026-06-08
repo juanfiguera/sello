@@ -101,6 +101,20 @@ describe("sello CLI", () => {
     assert.equal(typeof state.agentToken, "string");
   });
 
+  it("reuses local dev state for the same service and log", () => {
+    const cwd = makeTempCwd();
+    const first = runSello(["dev", "--dry-run"], { cwd });
+    const firstState = JSON.parse(readFileSync(join(cwd, ".sello", "dev.json"), "utf8"));
+    const second = runSello(["dev", "--dry-run"], { cwd });
+    const secondState = JSON.parse(readFileSync(join(cwd, ".sello", "dev.json"), "utf8"));
+
+    assert.equal(first.status, 0, first.stderr);
+    assert.equal(second.status, 0, second.stderr);
+    assert.equal(secondState.serviceKey, firstState.serviceKey);
+    assert.equal(secondState.ownerKey, firstState.ownerKey);
+    assert.equal(secondState.agentToken, firstState.agentToken);
+  });
+
   it("scaffolds a demo receipt emitter", () => {
     const cwd = makeTempCwd();
     const result = runSello(["init-demo"], { cwd });
@@ -375,6 +389,62 @@ describe("sello CLI", () => {
       assert.equal(api.receipts[0].resultStatus, "success");
       assert.equal(api.receipts[0].status, "valid");
       assert.equal(api.rejected.length, 0);
+    } finally {
+      await stopDevServer(devServer);
+    }
+  });
+
+  it("loads local dev log receipts after restarting the dev server", async (context) => {
+    const cwd = makeTempCwd();
+    const port = await freePort();
+    if (port === undefined) {
+      context.skip("localhost listeners are unavailable in this sandbox");
+      return;
+    }
+
+    let devServer: StartedDevServer;
+    try {
+      devServer = await startDevServer(port, cwd);
+    } catch (error) {
+      if (isDevServerListenUnavailable(error)) {
+        context.skip("localhost listeners are unavailable in this sandbox");
+        return;
+      }
+
+      throw error;
+    }
+
+    try {
+      const emitResult = await runSelloAsync([
+        "emit-demo",
+        "--title",
+        "Survives restart",
+      ], { cwd });
+      assert.equal(emitResult.status, 0, emitResult.stderr);
+      assert.match(readFileSync(join(cwd, ".sello", "dev-log.jsonl"), "utf8"), /"envelope"/);
+    } finally {
+      await stopDevServer(devServer);
+    }
+
+    try {
+      devServer = await startDevServer(port, cwd);
+
+      const actionsResult = await runSelloAsync(["actions"], { cwd });
+      assert.equal(actionsResult.status, 0, actionsResult.stderr);
+      assert.match(actionsResult.stdout, /calendar\.create_event\s+success/);
+
+      const pageResponse = await fetch(`http://127.0.0.1:${port}/actions`);
+      assert.equal(pageResponse.status, 200);
+      const pageHtml = await pageResponse.text();
+      assert.match(pageHtml, /1 verified action/);
+      assert.match(pageHtml, /calendar\.create_event/);
+    } catch (error) {
+      if (isDevServerListenUnavailable(error)) {
+        context.skip("localhost listeners are unavailable in this sandbox");
+        return;
+      }
+
+      throw error;
     } finally {
       await stopDevServer(devServer);
     }

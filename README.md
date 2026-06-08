@@ -53,6 +53,8 @@ npx --yes sello call-http-demo
 
 `sello dev` created a local owner key, service key, token, registry, and transparency log. The demo tool or route verified the token before running the handler. After the handler ran, the service signed an encrypted receipt for the action it observed. The local log stored the encrypted receipt, not plaintext action details. `sello actions` fetched the receipt, verified the log entry and service signature, decrypted it with the owner key, and printed the owner's view.
 
+Local dev state lives under `.sello/`. The dev log is stored as encrypted receipt entries in `.sello/dev-log.jsonl`, so receipts survive restarting `sello dev` while staying out of git.
+
 ## Why Sello?
 
 Most agent logs are written by the same system whose behavior they describe. If the agent, runtime, or operator is compromised, those logs can be incomplete or false.

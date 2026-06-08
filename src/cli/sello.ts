@@ -1,7 +1,13 @@
 #!/usr/bin/env -S node --experimental-strip-types
 
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join } from "node:path";
 
 import { generateEd25519KeyPair } from "../cose/sign1.ts";
@@ -164,7 +170,7 @@ async function devCommand(args: string[]): Promise<void> {
     "calendar.example.com/mcp/v1";
   const logEndpoint = `http://localhost:${port}/api`;
   const logUrl = toCanonicalLogUrl(`http://localhost:${port}/api`);
-  const state = createDevState({ serviceId, logUrl, logEndpoint });
+  const state = loadOrCreateDevState({ serviceId, logUrl, logEndpoint });
   saveDevState(state);
 
   if (dryRun) {
@@ -175,10 +181,12 @@ async function devCommand(args: string[]): Promise<void> {
   }
 
   const log = new MockTransparencyLog(logUrl);
+  const logPath = devLogPath();
+  const loadedEntries = loadDevLogEntries(log, logPath);
   const registry = parseRegistry(textEncoder.encode(state.registryJson));
   const server = createServer(async (request, response) => {
     try {
-      await handleDevRequest({ request, response, log, state, registry });
+      await handleDevRequest({ request, response, log, logPath, state, registry });
     } catch (error) {
       sendJson(response, 500, {
         error: error instanceof Error ? error.message : String(error),
@@ -188,6 +196,9 @@ async function devCommand(args: string[]): Promise<void> {
 
   server.listen(port, () => {
     printDevConfig(port, state);
+    console.log("");
+    console.log(`Local dev log: ${logPath}`);
+    console.log(`Loaded ${devLogEntryCountLabel(loadedEntries)}.`);
   });
 }
 
@@ -364,10 +375,11 @@ async function handleDevRequest(input: {
   request: IncomingMessage;
   response: ServerResponse;
   log: MockTransparencyLog;
+  logPath: string;
   state: DevState;
   registry: ReturnType<typeof parseRegistry>;
 }): Promise<void> {
-  const { request, response, log, state, registry } = input;
+  const { request, response, log, logPath, state, registry } = input;
   const url = new URL(request.url ?? "/", `http://${request.headers.host ?? "localhost"}`);
 
   if (request.method === "GET" && (url.pathname === "/" || url.pathname === "/actions")) {
@@ -392,6 +404,7 @@ async function handleDevRequest(input: {
       decodeBase64url(body.envelope, "envelope"),
       typeof body.integratedTime === "string" ? body.integratedTime : undefined,
     );
+    appendDevLogEntry(logPath, entry);
     sendJson(response, 200, serializeEntry(entry));
     return;
   }
@@ -411,6 +424,24 @@ async function handleDevRequest(input: {
   }
 
   sendJson(response, 404, { error: "not found" });
+}
+
+function loadOrCreateDevState(input: {
+  serviceId: string;
+  logUrl: CanonicalLogUrl;
+  logEndpoint: string;
+}): DevState {
+  const existing = loadDevStateIfPresent();
+  if (
+    existing &&
+    existing.serviceId === input.serviceId &&
+    existing.logUrl === input.logUrl &&
+    existing.logEndpoint === input.logEndpoint
+  ) {
+    return existing;
+  }
+
+  return createDevState(input);
 }
 
 function verifyDevActions(input: {
@@ -526,6 +557,54 @@ function loadDevStateOrThrow(message: string): DevState {
 
 function devStatePath(): string {
   return join(process.cwd(), ".sello", "dev.json");
+}
+
+function devLogPath(): string {
+  return join(process.cwd(), ".sello", "dev-log.jsonl");
+}
+
+function loadDevLogEntries(log: MockTransparencyLog, path: string): number {
+  if (!existsSync(path)) {
+    return 0;
+  }
+
+  const lines = textDecoder
+    .decode(readFileBytes(path))
+    .split(/\r?\n/)
+    .filter((line) => line.trim().length > 0);
+
+  let loaded = 0;
+  for (const [index, line] of lines.entries()) {
+    let entry;
+    try {
+      entry = deserializeEntry(JSON.parse(line));
+      if (entry.logUrl !== log.logUrl) {
+        continue;
+      }
+      log.append(entry.envelope, entry.integratedTime);
+      loaded += 1;
+    } catch (error) {
+      throw new TypeError(
+        `invalid local dev log entry ${index + 1} in ${path}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  }
+
+  return loaded;
+}
+
+function appendDevLogEntry(
+  path: string,
+  entry: ReturnType<MockTransparencyLog["append"]>,
+): void {
+  mkdirSync(dirname(path), { recursive: true });
+  appendFileSync(path, `${JSON.stringify(serializeEntry(entry))}\n`, { mode: 0o600 });
+}
+
+function devLogEntryCountLabel(count: number): string {
+  return count === 1 ? "1 encrypted receipt" : `${count} encrypted receipts`;
 }
 
 function readFileBytes(path: string): Uint8Array {
