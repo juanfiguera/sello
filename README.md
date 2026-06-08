@@ -55,6 +55,13 @@ npx --yes sello call-http-demo
 
 Local dev state lives under `.sello/`. The dev log is stored as encrypted receipt entries in `.sello/dev-log.jsonl`, so receipts survive restarting `sello dev` while staying out of git.
 
+## Troubleshooting
+
+- **Port already in use:** run `npx sello dev --port 8791`.
+- **No actions found:** make sure `sello dev` is running from the same project folder where you emitted the receipt.
+- **Missing token:** run `npx sello dev` first so `.sello/dev.json` exists.
+- **Install cannot find a version:** make sure that version has been published to npm.
+
 ## Why Sello?
 
 Most agent logs are written by the same system whose behavior they describe. If the agent, runtime, or operator is compromised, those logs can be incomplete or false.

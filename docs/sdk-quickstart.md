@@ -54,6 +54,13 @@ npx --yes sello actions
 
 Local dev state lives under `.sello/`. The encrypted dev log is stored in `.sello/dev-log.jsonl`, so receipts survive restarting `sello dev` without being committed to git.
 
+## Troubleshooting
+
+- **Port already in use:** run `npx sello dev --port 8791`.
+- **No actions found:** make sure `sello dev` is running from the same project folder where you emitted the receipt.
+- **Missing token:** run `npx sello dev` first so `.sello/dev.json` exists.
+- **Install cannot find a version:** make sure that version has been published to npm.
+
 Inside this repo, start the local log and action viewer:
 
 ```bash
