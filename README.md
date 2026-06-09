@@ -1,6 +1,6 @@
 ![Sello banner](docs/assets/sello-banner.png)
 
-# Sello
+<h1 align="center">Sello</h1>
 
 <p align="center">
   <a href="https://github.com/juanfiguera/sello/actions/workflows/ci.yml"><img alt="build status" src="https://img.shields.io/github/actions/workflow/status/juanfiguera/sello/ci.yml?branch=main&style=flat-square&label=build&labelColor=0b1011&color=58d68d"></a>
