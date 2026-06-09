@@ -2,6 +2,28 @@
 
 # Sello
 
+<p align="center">
+  <a href="https://github.com/juanfiguera/sello/actions/workflows/ci.yml"><img alt="build status" src="https://img.shields.io/github/actions/workflow/status/juanfiguera/sello/ci.yml?branch=main&style=flat-square&label=build&labelColor=0b1011&color=58d68d"></a>
+  <a href="https://www.npmjs.com/package/sello"><img alt="npm version" src="https://img.shields.io/npm/v/sello?style=flat-square&label=npm&labelColor=0b1011&color=58d68d"></a>
+  <a href="https://www.npmjs.com/package/sello"><img alt="npm downloads" src="https://img.shields.io/npm/dm/sello?style=flat-square&label=downloads&labelColor=0b1011&color=58d68d"></a>
+  <a href="LICENSE"><img alt="license Apache-2.0" src="https://img.shields.io/npm/l/sello?style=flat-square&label=license&labelColor=0b1011&color=58d68d"></a>
+  <a href="package.json"><img alt="Node.js 22.7 or newer" src="https://img.shields.io/badge/node-%3E%3D22.7-58d68d?style=flat-square&labelColor=0b1011"></a>
+  <a href="https://arxiv.org/abs/2606.04193"><img alt="arXiv 2606.04193" src="https://img.shields.io/badge/arXiv-2606.04193-58d68d?style=flat-square&labelColor=0b1011"></a>
+</p>
+
+<p align="center">
+  <a href="#try-it">Quickstart</a> &middot;
+  <a href="#what-sello-gives-you">What It Does</a> &middot;
+  <a href="#add-sello-in-a-few-lines">SDK</a> &middot;
+  <a href="SPEC.md">Protocol</a> &middot;
+  <a href="#repository-status">Status</a> &middot;
+  <a href="#sharp-edges">Sharp Edges</a> &middot;
+  <a href="#related-work">Prior Art</a> &middot;
+  <a href="SECURITY.md">Security</a> &middot;
+  <a href="CONTRIBUTING.md">Contributing</a> &middot;
+  <a href="#license">License</a>
+</p>
+
 Sello is a protocol for independently-verifiable records of AI agent actions.
 
 **Pronunciation:** commonly `SEH-yoh` or `SEH-yo`, from the Spanish word *sello*, meaning a seal or stamp.
