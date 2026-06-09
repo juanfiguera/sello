@@ -242,7 +242,7 @@ Much of this prior work surfaced after Sello's design had already converged on s
 
 ## Feedback
 
-Issues and pull requests are welcome. This is an early draft; adversarial review is the point.
+Issues and pull requests are welcome. This is an early draft; adversarial review is the point. See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution notes and [SECURITY.md](SECURITY.md) for sensitive reports.
 
 ## License
 
