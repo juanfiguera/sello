@@ -163,16 +163,25 @@ For an installed-project bridge from demo to app, run `npx sello init-http-demo`
 
 ## The First 10 Minutes
 
-If you are implementing Sello, start with one local loop:
+The first milestone is not a production log or a full MCP server. It is one mock action that produces one encrypted receipt and one verified owner view.
 
-1. Create or load one owner HPKE key pair and keep it constant for the local run.
-2. Create or load one service Ed25519 signing key and keep it constant for the local run.
-3. Create one mock compact JWS token containing `owner_hpke_pk` and `sello_logs`.
-4. Have the service create one receipt for one mock action.
-5. Store the receipt in a mock log under `sello_token_ref`.
-6. Have the owner fetch, verify, and decrypt the receipt.
+Run the complete local loop first:
 
-For the first local loop, start with the reference helpers instead of writing crypto setup by hand:
+```bash
+node --run demo
+```
+
+Then build the same loop yourself with these local pieces:
+
+| Piece | Local helper | Why it exists |
+|-------|--------------|---------------|
+| Owner key | `generateHpkeKeyPair()` | The public key goes in the token. The private key decrypts receipts later. |
+| Service key | `generateEd25519KeyPair()` | The service signs receipts for actions it observed. |
+| Token issuer key | `generateEd25519KeyPair()` | The issuer signs the mock agent token. |
+| Transparency log | `new MockTransparencyLog(...)` | The log stores encrypted signed receipts by `sello_token_ref`. |
+| Service registry | `loadSignedRegistry(...)` | The owner uses it to resolve the service public key and revocation status. |
+
+That setup starts like this:
 
 ```ts
 import { generateEd25519KeyPair, generateHpkeKeyPair, MockTransparencyLog } from "sello";
@@ -180,10 +189,13 @@ import { generateEd25519KeyPair, generateHpkeKeyPair, MockTransparencyLog } from
 const owner = generateHpkeKeyPair();
 const service = generateEd25519KeyPair();
 const tokenIssuer = generateEd25519KeyPair();
+const trustRoot = generateEd25519KeyPair();
 const log = new MockTransparencyLog("https://rekor.example.com/api");
 ```
 
-Then sign the token with `signSelloJwsToken(...)`, create the receipt with `createReceiptFromJwsToken(...)`, and verify it with `verifyReceipts(...)`. For a compact runnable version, read [`src/cli/demo.ts`](src/cli/demo.ts).
+Next, sign a compact JWS token with `signSelloJwsToken(...)`. Put the owner's HPKE public key in `owner_hpke_pk` and the log URL in `sello_logs`. Pass that token to `createReceiptFromJwsToken(...)` with one mock action input and output. Finally, call `verifyReceipts(...)` with the same raw token, the owner private key, the mock log, and the service registry.
+
+For a compact runnable version, read [`src/cli/demo.ts`](src/cli/demo.ts). It is the smallest end-to-end implementation in the repo.
 
 Do not start with Rekor, MCP middleware, distributed identity, or CLI polish. Those become much easier once one local receipt works end to end.
 
@@ -200,33 +212,64 @@ You know the first loop works when the owner can print one verified receipt:
 
 ## Service Integration
 
-A Sello-aware service does this for each agent action:
+In a real service, Sello belongs at the boundary where an agent request becomes a tool or API action. The wrapper should receive the request, verify the agent token, run your existing function, and emit a receipt without changing the function's return value.
 
-1. Verify the agent's authorization token.
-2. Read `owner_hpke_pk` and `sello_logs` from the verified token.
-3. Compute `sello_token_ref = SHA-256(raw compact JWS bytes)`.
-4. Build a CBOR receipt body describing the action.
-5. Encrypt the receipt body to the owner with HPKE.
-6. Sign the COSE_Sign1 envelope with the service key.
-7. Publish the envelope to an owner-trusted transparency log.
+The small version is:
+
+```ts
+import { sello } from "sello";
+
+const receipts = sello.service();
+
+export const createEvent = receipts.tool("calendar.create_event", async (request) => {
+  return calendar.events.create(request);
+});
+```
+
+`sello.service()` reads service-side config from the environment. A self-hosted service usually needs:
+
+```bash
+SELLO_SERVICE_ID=calendar.example.com/mcp/v1
+SELLO_SERVICE_KEY=sello_live_local_...
+SELLO_TOKEN_ISSUER_JWKS=https://auth.example.com/.well-known/jwks.json
+SELLO_LOG_URL=https://logs.example.com/api
+SELLO_SUBMIT_MODE=background
+```
+
+For each wrapped action, Sello does the receipt work around your code:
+
+- Before the action, it verifies the agent token and reads `owner_hpke_pk` and `sello_logs`.
+- While running the action, it hashes canonical input and output bytes instead of putting plaintext details in the public log.
+- After the action, it builds the receipt, encrypts it to the owner, signs it with the service key, and submits it to an owner-trusted log.
 
 The service signs what it observed. It does not need the owner's private key, and it does not need to understand the owner's downstream audit workflow.
 
-For most services, Sello should fit as middleware around an existing request flow: verify token, run action, emit receipt.
+If you cannot use `receipts.tool(...)`, mirror the same sequence manually with `createReceiptFromJwsToken(...)`: verify token, run action, hash inputs and outputs, create receipt, submit to the log.
 
 ## Owner Verification
 
-An owner verifier does this when reconstructing activity:
+The owner side starts with the same raw agent token and the owner's private key. In local dev, `sello dev` saves both under `.sello/`, so the short command works:
 
-1. Compute `sello_token_ref` from the same raw compact JWS bytes.
-2. Query every trusted log for matching receipts.
-3. Confirm each receipt's `sello_log_url` exactly matches the log that returned the proof.
-4. Verify log inclusion.
-5. Resolve the service signing key from `kid`.
-6. Apply revocation rules using log integrated time.
-7. Verify the COSE signature.
-8. Decrypt the HPKE payload.
-9. Validate and display the receipt body.
+```bash
+npx sello actions
+```
+
+Outside local dev, pass the token you want to inspect:
+
+```bash
+npx sello actions --token <agent-token>
+```
+
+The verifier needs four inputs:
+
+| Input | Where it comes from | What Sello uses it for |
+|-------|---------------------|------------------------|
+| Raw agent token | Your auth system or local dev state | Computes `sello_token_ref` and reads trusted logs. |
+| Owner private key | Owner-controlled config | Decrypts receipts after all public checks pass. |
+| Service registry | Signed registry or local dev state | Resolves service signing keys and revocation status. |
+| Trusted logs | Token claims plus owner policy | Finds receipts and verifies inclusion. |
+
+For each candidate receipt, Sello checks that the returning log matches the signed `sello_log_url`, verifies log inclusion, resolves the service key, applies revocation using log integrated time, verifies the COSE signature, decrypts the HPKE payload, and validates the receipt body.
 
 For most owners, Sello should fit as a pull-based audit tool: provide the token and owner key, then retrieve the verified trail from trusted logs.
 
