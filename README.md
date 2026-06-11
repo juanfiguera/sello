@@ -13,13 +13,12 @@
 
 <p align="center">
   <a href="#try-it">Quickstart</a> &middot;
-  <a href="#what-sello-gives-you">What It Does</a> &middot;
-  <a href="#add-sello-in-a-few-lines">SDK</a> &middot;
+  <a href="#add-sello-to-a-tool">Add Sello</a> &middot;
+  <a href="#see-logged-actions">Actions</a> &middot;
+  <a href="#how-it-works">How It Works</a> &middot;
+  <a href="#learn-more">Learn More</a> &middot;
   <a href="SPEC.md">Protocol</a> &middot;
   <a href="https://arxiv.org/abs/2606.04193">Paper</a> &middot;
-  <a href="#repository-status">Status</a> &middot;
-  <a href="#sharp-edges">Sharp Edges</a> &middot;
-  <a href="#related-work">Prior Art</a> &middot;
   <a href="SECURITY.md">Security</a> &middot;
   <a href="CONTRIBUTING.md">Contributing</a> &middot;
   <a href="#license">License</a>
@@ -59,62 +58,9 @@ Then open:
 http://localhost:8787/actions
 ```
 
-## What Just Happened?
+`sello dev` creates local keys, a demo token, a service registry, and a local transparency log under `.sello/`. The log stores encrypted receipt entries, not plaintext action details.
 
-`sello dev` created a local owner key, service key, token, registry, and transparency log. `sello emit-demo` called a small demo tool with that token. The service verified the token, ran the tool function, signed an encrypted receipt for the action it observed, and stored that encrypted receipt in the local log. `sello actions` fetched the receipt, verified the log entry and service signature, decrypted it with the owner key, and printed the owner's view.
-
-Local dev state lives under `.sello/`. The dev log is stored as encrypted receipt entries in `.sello/dev-log.jsonl`, so receipts survive restarting `sello dev` while staying out of git.
-
-## Why Sello?
-
-Most agent logs are written by the same system whose behavior they describe. If the agent, runtime, or operator is compromised, those logs can be incomplete or false.
-
-Sello moves receipt-writing to the services the agent calls. The service was present for the action, but it is outside the agent's own logging path. The architectural inversion is simple: the signer is not the agent or its operator, but the receiver that observed the action.
-
-## What Sello Gives You
-
-Sello helps an owner verify that:
-
-- A specific service signed a specific receipt.
-- The receipt was encrypted for the owner.
-- The receipt was included in a trusted transparency log.
-- The receipt body was not modified after signing.
-
-Sello does not prove that the agent called every service it should have called, that every service is honest, or that unauthenticated log indexes returned complete results. Those limits are intentional and documented in the spec.
-
-## Repository Status
-
-This repository currently contains:
-
-- [SPEC.md](SPEC.md): the Sello protocol draft.
-- A TypeScript reference implementation and SDK facade in [`src/`](src/).
-- Implementation-backed v0.1 test vectors in [`fixtures/vectors/sello-v0.1.json`](fixtures/vectors/sello-v0.1.json).
-- Security review notes in [`docs/security-review.md`](docs/security-review.md).
-- SDK security audit notes in [`docs/sdk-security-audit.md`](docs/sdk-security-audit.md).
-
-The implementation includes a local end-to-end demo, compact JWS token verification, COSE_Sign1 receipt envelopes, HPKE encryption, a mock transparency log, a Rekor discovery adapter, owner verification, an MCP middleware prototype, security review notes, and a local benchmark. The package is TypeScript today; no Python SDK ships yet. Live Rekor proof verification and production identity operations are still future work.
-
-📄 **Paper:** [Notarized Agents: Receiver-Attested Confidential Receipts for AI Agent Actions](https://arxiv.org/abs/2606.04193) (arXiv:2606.04193, submitted June 2026). Local PDF: [docs/paper/notarized-agents.pdf](docs/paper/notarized-agents.pdf).
-
-## Start Here
-
-| Goal | Read |
-|------|------|
-| Add Sello in a few lines | [SDK Quickstart](docs/sdk-quickstart.md) |
-| Emit your first receipt | `npx --yes sello dev`, then `npx --yes sello emit-demo` |
-| Wrap one HTTP route | `npx --yes sello init-http-demo`, then `npx --yes sello call-http-demo` |
-| Try a wrapped tool locally | `node --run dev`, then `node --run example:tool` |
-| Try an MCP-style tool call | `node --run dev`, then `node --run example:mcp` |
-| See a minimal MCP integration | [examples/mcp-minimal-server.ts](examples/mcp-minimal-server.ts) |
-| Understand the protocol | [SPEC.md](SPEC.md) Quick Start |
-| Run the local demo | `node --run demo` |
-| Run the test suite | `node --run test` |
-| Measure local size/performance | `node --run bench -- --json` |
-| Emit receipts from a service | [SPEC.md](SPEC.md) §§3.1, 4.1, 5, 6.2 |
-| Verify receipts as an owner | [SPEC.md](SPEC.md) §§4.2, 5, 6.2, 7.1 |
-| Build the reference implementation | Start with "The First 10 Minutes" below |
-
-## Add Sello in a Few Lines
+## Add Sello to a Tool
 
 ```ts
 import { sello } from "sello";
@@ -126,125 +72,7 @@ export const createEvent = receipts.tool("calendar.create_event", async (request
 });
 ```
 
-Then inspect verified actions:
-
-```bash
-npx sello actions --token <agent-token>
-```
-
-In local dev, `sello dev` prints and saves a demo token:
-
-```bash
-SELLO_ACTION_TOKEN=eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9...
-```
-
-You usually do not need to copy it. `npx sello actions` reads the latest dev token from `.sello/dev.json`. Use `--token` when you want to inspect receipts for a specific agent authorization token from your own system.
-
-Sello works with your own log server. Using `sello.build` is an optional convenience, not a protocol requirement.
-
-To try the repo's local loop:
-
-```bash
-# Terminal 1
-node --run dev
-
-# Terminal 2
-node --run example:tool
-node --run actions
-```
-
-The example wraps a mock calendar tool, emits a service-signed encrypted receipt, and lets the owner verify it from the local action log.
-
-For an MCP-shaped `tools/call` boundary, run `node --run example:mcp` instead of `node --run example:tool`.
-
-For a smaller production-shaped MCP example, see [examples/mcp-minimal-server.ts](examples/mcp-minimal-server.ts). It wraps one `tools/call` function with `sello.service()` and leaves unknown tools unreceipted.
-
-For an installed-project bridge from demo to app, run `npx sello init-http-demo`. It writes a small dependency-free HTTP route that imports `sello`, reads the local dev config, verifies a bearer token, runs the route function, and emits a receipt. With the local log and route running, `npx sello call-http-demo` sends the demo request for you.
-
-## The First 10 Minutes
-
-The first milestone is not a production log or a full MCP server. It is one mock action that produces one encrypted receipt and one verified owner view.
-
-If you are only trying Sello, let the CLI create the owner key for you:
-
-```bash
-npx --yes sello dev
-```
-
-That writes local dev state to `.sello/dev.json`. You do not need to copy keys by hand.
-
-If you are implementing the primitive loop yourself, create the owner key like this:
-
-```ts
-import { base64urlEncode, generateHpkeKeyPair } from "sello";
-
-const owner = generateHpkeKeyPair();
-const ownerHpkePk = base64urlEncode(owner.publicKey);
-```
-
-Put `ownerHpkePk` in the token's `owner_hpke_pk` claim. Keep `owner.privateKey` for the owner verifier; it is what decrypts receipts later. For the first local run, keeping it in a variable is enough. In a real deployment, store it in owner-controlled secret storage.
-
-To see the complete loop before building it piece by piece, run:
-
-```bash
-node --run demo
-```
-
-The rest of the local loop uses these pieces:
-
-| Piece | Local helper | Why it exists |
-|-------|--------------|---------------|
-| Owner key | `generateHpkeKeyPair()` | The public key goes in the token. The private key decrypts receipts later. |
-| Service key | `generateEd25519KeyPair()` | The service signs receipts for actions it observed. |
-| Token issuer key | `generateEd25519KeyPair()` | The issuer signs the mock agent token. |
-| Transparency log | `new MockTransparencyLog(...)` | The log stores encrypted signed receipts by `sello_token_ref`. |
-| Service registry | `loadSignedRegistry(...)` | The owner uses it to resolve the service public key and revocation status. |
-
-Then add the other local pieces:
-
-```ts
-import { generateEd25519KeyPair, MockTransparencyLog } from "sello";
-
-const service = generateEd25519KeyPair();
-const tokenIssuer = generateEd25519KeyPair();
-const trustRoot = generateEd25519KeyPair();
-const log = new MockTransparencyLog("https://rekor.example.com/api");
-```
-
-Next, sign a compact JWS token with `signSelloJwsToken(...)`. Put the owner's HPKE public key in `owner_hpke_pk` and the log URL in `sello_logs`. Pass that token to `createReceiptFromJwsToken(...)` with one mock action input and output. Finally, call `verifyReceipts(...)` with the same raw token, the owner private key, the mock log, and the service registry.
-
-For a compact runnable version, read [`src/cli/demo.ts`](src/cli/demo.ts). It is the smallest end-to-end implementation in the repo.
-
-Do not start with Rekor, MCP middleware, distributed identity, or CLI polish. Those become much easier once one local receipt works end to end.
-
-You know the first loop works when the owner can print one verified receipt:
-
-```json
-{
-  "service": "example.com/tool/v1",
-  "action-type": "tools/call",
-  "result-status": "success",
-  "verified": true
-}
-```
-
-## Service Integration
-
-In a real service, Sello belongs at the boundary where an agent request becomes a tool or API action. The wrapper should receive the request, verify the agent token, run your existing function, and emit a receipt without changing the function's return value.
-
-The small version is:
-
-```ts
-import { sello } from "sello";
-
-const receipts = sello.service();
-
-export const createEvent = receipts.tool("calendar.create_event", async (request) => {
-  return calendar.events.create(request);
-});
-```
-
-`sello.service()` reads service-side config from the environment. A self-hosted service usually needs:
+In local dev, `npx sello dev` supplies the config this snippet needs. In production, configure your service with a service id, service signing key, token issuer, and log URL:
 
 ```bash
 SELLO_SERVICE_ID=calendar.example.com/mcp/v1
@@ -254,42 +82,56 @@ SELLO_LOG_URL=https://logs.example.com/api
 SELLO_SUBMIT_MODE=background
 ```
 
-For each wrapped action, Sello does the receipt work around your code:
+Sello works with your own log server. Using `sello.build` is an optional convenience, not a protocol requirement.
 
-- Before the action, it verifies the agent token and reads `owner_hpke_pk` and `sello_logs`.
-- While running the action, it hashes canonical input and output bytes instead of putting plaintext details in the public log.
-- After the action, it builds the receipt, encrypts it to the owner, signs it with the service key, and submits it to an owner-trusted log.
+To scaffold a tiny emitter or HTTP route:
 
-The service signs what it observed. It does not need the owner's private key, and it does not need to understand the owner's downstream audit workflow.
+```bash
+npx --yes sello init-demo
+npx --yes sello init-http-demo
+```
 
-If you cannot use `receipts.tool(...)`, mirror the same sequence manually with `createReceiptFromJwsToken(...)`: verify token, run action, hash inputs and outputs, create receipt, submit to the log.
-
-## Owner Verification
-
-The owner side starts with the same raw agent token and the owner's private key. In local dev, `sello dev` saves both under `.sello/`, so the short command works:
+## See Logged Actions
 
 ```bash
 npx sello actions
 ```
 
-Outside local dev, pass the token you want to inspect:
+In local dev, `sello actions` reads the latest dev token and owner key from `.sello/dev.json`. To inspect actions for a specific agent token, pass it explicitly:
 
 ```bash
 npx sello actions --token <agent-token>
 ```
 
-The verifier needs four inputs:
+The token is the same authorization token the agent used when it called services. Sello hashes the exact token bytes into `sello_token_ref`, queries trusted logs, verifies matching receipts, and decrypts them with the owner key.
 
-| Input | Where it comes from | What Sello uses it for |
-|-------|---------------------|------------------------|
-| Raw agent token | Your auth system or local dev state | Computes `sello_token_ref` and reads trusted logs. |
-| Owner private key | Owner-controlled config | Decrypts receipts after all public checks pass. |
-| Service registry | Signed registry or local dev state | Resolves service signing keys and revocation status. |
-| Trusted logs | Token claims plus owner policy | Finds receipts and verifies inclusion. |
+Public logs store encrypted receipts. Viewing action details requires the owner private key or an explicitly delegated viewer key.
 
-For each candidate receipt, Sello checks that the returning log matches the signed `sello_log_url`, verifies log inclusion, resolves the service key, applies revocation using log integrated time, verifies the COSE signature, decrypts the HPKE payload, and validates the receipt body.
+## How It Works
 
-For most owners, Sello should fit as a pull-based audit tool: provide the token and owner key, then retrieve the verified trail from trusted logs.
+Most agent logs are written by the same system whose behavior they describe. If the agent, runtime, or operator is compromised, those logs can be incomplete or false.
+
+Sello moves receipt-writing to the services the agent calls. The service was present for the action, but it is outside the agent's own logging path.
+
+1. The agent calls a service with an authorization token.
+2. The service verifies the token, runs the action, and signs an encrypted receipt for what it observed.
+3. A transparency log stores the encrypted receipt.
+4. The owner later fetches, verifies, and decrypts the receipt.
+
+Sello helps an owner verify that a specific service signed a specific receipt, the receipt was encrypted for the owner, the receipt was included in a trusted transparency log, and the receipt body was not modified after signing.
+
+Sello does not prove that the agent called every service it should have called, that every service is honest, or that unauthenticated log indexes returned complete results. Those limits are intentional and documented in the spec.
+
+## Learn More
+
+- [SDK Quickstart](docs/sdk-quickstart.md): local dev, HTTP demo, self-hosted config, and hosted config.
+- [Protocol Walkthrough](docs/protocol-walkthrough.md): the primitive receipt loop for implementers.
+- [SPEC.md](SPEC.md): the Sello protocol draft.
+- [Notarized Agents paper](https://arxiv.org/abs/2606.04193): design rationale, threat model, and prior art.
+- [examples/mcp-minimal-server.ts](examples/mcp-minimal-server.ts): a small MCP-shaped integration.
+- [docs/security-review.md](docs/security-review.md) and [docs/sdk-security-audit.md](docs/sdk-security-audit.md): current review notes.
+
+This package is TypeScript today; no Python SDK ships yet. Live Rekor proof verification and production identity operations are still future work.
 
 ## Core Terms
 
