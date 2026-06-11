@@ -165,13 +165,32 @@ For an installed-project bridge from demo to app, run `npx sello init-http-demo`
 
 The first milestone is not a production log or a full MCP server. It is one mock action that produces one encrypted receipt and one verified owner view.
 
-Run the complete local loop first:
+If you are only trying Sello, let the CLI create the owner key for you:
+
+```bash
+npx --yes sello dev
+```
+
+That writes local dev state to `.sello/dev.json`. You do not need to copy keys by hand.
+
+If you are implementing the primitive loop yourself, create the owner key like this:
+
+```ts
+import { base64urlEncode, generateHpkeKeyPair } from "sello";
+
+const owner = generateHpkeKeyPair();
+const ownerHpkePk = base64urlEncode(owner.publicKey);
+```
+
+Put `ownerHpkePk` in the token's `owner_hpke_pk` claim. Keep `owner.privateKey` for the owner verifier; it is what decrypts receipts later. For the first local run, keeping it in a variable is enough. In a real deployment, store it in owner-controlled secret storage.
+
+To see the complete loop before building it piece by piece, run:
 
 ```bash
 node --run demo
 ```
 
-Then build the same loop yourself with these local pieces:
+The rest of the local loop uses these pieces:
 
 | Piece | Local helper | Why it exists |
 |-------|--------------|---------------|
@@ -181,12 +200,11 @@ Then build the same loop yourself with these local pieces:
 | Transparency log | `new MockTransparencyLog(...)` | The log stores encrypted signed receipts by `sello_token_ref`. |
 | Service registry | `loadSignedRegistry(...)` | The owner uses it to resolve the service public key and revocation status. |
 
-That setup starts like this:
+Then add the other local pieces:
 
 ```ts
-import { generateEd25519KeyPair, generateHpkeKeyPair, MockTransparencyLog } from "sello";
+import { generateEd25519KeyPair, MockTransparencyLog } from "sello";
 
-const owner = generateHpkeKeyPair();
 const service = generateEd25519KeyPair();
 const tokenIssuer = generateEd25519KeyPair();
 const trustRoot = generateEd25519KeyPair();
