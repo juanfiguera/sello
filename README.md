@@ -3,12 +3,12 @@
 <h1 align="center">Sello</h1>
 
 <p align="center">
-  <a href="https://github.com/juanfiguera/sello/actions/workflows/ci.yml"><img alt="build status" src="https://img.shields.io/github/actions/workflow/status/juanfiguera/sello/ci.yml?branch=main&style=flat-square&label=build&labelColor=0b1011&color=58d68d"></a>
-  <a href="https://www.npmjs.com/package/sello"><img alt="npm version" src="https://img.shields.io/npm/v/sello?style=flat-square&label=npm&labelColor=0b1011&color=58d68d"></a>
-  <a href="https://www.npmjs.com/package/sello"><img alt="npm downloads" src="https://img.shields.io/npm/dm/sello?style=flat-square&label=downloads&labelColor=0b1011&color=58d68d"></a>
-  <a href="LICENSE"><img alt="license Apache-2.0" src="https://img.shields.io/npm/l/sello?style=flat-square&label=license&labelColor=0b1011&color=58d68d"></a>
-  <a href="package.json"><img alt="Node.js 22.7 or newer" src="https://img.shields.io/badge/node-%3E%3D22.7-58d68d?style=flat-square&labelColor=0b1011"></a>
-  <a href="https://arxiv.org/abs/2606.04193"><img alt="arXiv 2606.04193" src="https://img.shields.io/badge/arXiv-2606.04193-58d68d?style=flat-square&labelColor=0b1011"></a>
+  <a href="https://github.com/juanfiguera/sello/actions/workflows/ci.yml"><img alt="build status" src="https://img.shields.io/github/actions/workflow/status/juanfiguera/sello/ci.yml?branch=main&style=flat-square&label=build&labelColor=0b1011&color=e8f7ef"></a>
+  <a href="https://www.npmjs.com/package/sello"><img alt="npm version" src="https://img.shields.io/npm/v/sello?style=flat-square&label=npm&labelColor=0b1011&color=e8f7ef"></a>
+  <a href="https://www.npmjs.com/package/sello"><img alt="npm downloads" src="https://img.shields.io/npm/dm/sello?style=flat-square&label=downloads&labelColor=0b1011&color=e8f7ef"></a>
+  <a href="LICENSE"><img alt="license Apache-2.0" src="https://img.shields.io/npm/l/sello?style=flat-square&label=license&labelColor=0b1011&color=e8f7ef"></a>
+  <a href="package.json"><img alt="Node.js 22.7 or newer" src="https://img.shields.io/badge/node-%3E%3D22.7-e8f7ef?style=flat-square&labelColor=0b1011"></a>
+  <a href="https://arxiv.org/abs/2606.04193"><img alt="arXiv 2606.04193" src="https://img.shields.io/badge/arXiv-2606.04193-e8f7ef?style=flat-square&labelColor=0b1011"></a>
 </p>
 
 <p align="center">
@@ -16,6 +16,7 @@
   <a href="#what-sello-gives-you">What It Does</a> &middot;
   <a href="#add-sello-in-a-few-lines">SDK</a> &middot;
   <a href="SPEC.md">Protocol</a> &middot;
+  <a href="https://arxiv.org/abs/2606.04193">Paper</a> &middot;
   <a href="#repository-status">Status</a> &middot;
   <a href="#sharp-edges">Sharp Edges</a> &middot;
   <a href="#related-work">Prior Art</a> &middot;
@@ -58,31 +59,11 @@ Then open:
 http://localhost:8787/actions
 ```
 
-To see the tiny wrapped-tool source:
-
-```bash
-npx --yes sello init-demo
-```
-
-To scaffold a small HTTP route that emits receipts:
-
-```bash
-npx --yes sello init-http-demo
-npx --yes sello call-http-demo
-```
-
 ## What Just Happened?
 
-`sello dev` created a local owner key, service key, token, registry, and transparency log. The demo tool or route verified the token before running the handler. After the handler ran, the service signed an encrypted receipt for the action it observed. The local log stored the encrypted receipt, not plaintext action details. `sello actions` fetched the receipt, verified the log entry and service signature, decrypted it with the owner key, and printed the owner's view.
+`sello dev` created a local owner key, service key, token, registry, and transparency log. `sello emit-demo` called a small demo tool with that token. The service verified the token, ran the tool function, signed an encrypted receipt for the action it observed, and stored that encrypted receipt in the local log. `sello actions` fetched the receipt, verified the log entry and service signature, decrypted it with the owner key, and printed the owner's view.
 
 Local dev state lives under `.sello/`. The dev log is stored as encrypted receipt entries in `.sello/dev-log.jsonl`, so receipts survive restarting `sello dev` while staying out of git.
-
-## Troubleshooting
-
-- **Port already in use:** run `npx sello dev --port 8791`.
-- **No actions found:** make sure `sello dev` is running from the same project folder where you emitted the receipt.
-- **Missing token:** run `npx sello dev` first so `.sello/dev.json` exists.
-- **Install cannot find a version:** make sure that version has been published to npm.
 
 ## Why Sello?
 
@@ -106,12 +87,12 @@ Sello does not prove that the agent called every service it should have called, 
 This repository currently contains:
 
 - [SPEC.md](SPEC.md): the Sello protocol draft.
-- A TypeScript reference implementation in [`src/`](src/).
+- A TypeScript reference implementation and SDK facade in [`src/`](src/).
 - Implementation-backed v0.1 test vectors in [`fixtures/vectors/sello-v0.1.json`](fixtures/vectors/sello-v0.1.json).
 - Security review notes in [`docs/security-review.md`](docs/security-review.md).
 - SDK security audit notes in [`docs/sdk-security-audit.md`](docs/sdk-security-audit.md).
 
-The implementation includes a local end-to-end demo, compact JWS token verification, COSE_Sign1 receipt envelopes, HPKE encryption, a mock transparency log, a Rekor discovery adapter, owner verification, an MCP middleware prototype, security review notes, and a local benchmark. Live Rekor proof verification and production identity operations are still future work.
+The implementation includes a local end-to-end demo, compact JWS token verification, COSE_Sign1 receipt envelopes, HPKE encryption, a mock transparency log, a Rekor discovery adapter, owner verification, an MCP middleware prototype, security review notes, and a local benchmark. The package is TypeScript today; no Python SDK ships yet. Live Rekor proof verification and production identity operations are still future work.
 
 📄 **Paper:** [Notarized Agents: Receiver-Attested Confidential Receipts for AI Agent Actions](https://arxiv.org/abs/2606.04193) (arXiv:2606.04193, submitted June 2026). Local PDF: [docs/paper/notarized-agents.pdf](docs/paper/notarized-agents.pdf).
 
@@ -159,7 +140,7 @@ SELLO_ACTION_TOKEN=eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9...
 
 You usually do not need to copy it. `npx sello actions` reads the latest dev token from `.sello/dev.json`. Use `--token` when you want to inspect receipts for a specific agent authorization token from your own system.
 
-Sello works with your own log server. `sello.build` is optional convenience, not a protocol requirement.
+Sello works with your own log server. Using `sello.build` is an optional convenience, not a protocol requirement.
 
 To try the repo's local loop:
 
@@ -172,24 +153,37 @@ node --run example:tool
 node --run actions
 ```
 
-The example wraps a fake calendar tool, emits a service-signed encrypted receipt, and lets the owner verify it from the local action log.
+The example wraps a mock calendar tool, emits a service-signed encrypted receipt, and lets the owner verify it from the local action log.
 
 For an MCP-shaped `tools/call` boundary, run `node --run example:mcp` instead of `node --run example:tool`.
 
-For a smaller production-shaped MCP example, see [examples/mcp-minimal-server.ts](examples/mcp-minimal-server.ts). It wraps one `tools/call` handler with `sello.service()` and leaves unknown tools unreceipted.
+For a smaller production-shaped MCP example, see [examples/mcp-minimal-server.ts](examples/mcp-minimal-server.ts). It wraps one `tools/call` function with `sello.service()` and leaves unknown tools unreceipted.
 
-For an installed-project bridge from demo to app, run `npx sello init-http-demo`. It writes a small dependency-free HTTP route that imports `sello`, reads the local dev config, verifies a bearer token, runs a handler, and emits a receipt. With the local log and route running, `npx sello call-http-demo` sends the demo request for you.
+For an installed-project bridge from demo to app, run `npx sello init-http-demo`. It writes a small dependency-free HTTP route that imports `sello`, reads the local dev config, verifies a bearer token, runs the route function, and emits a receipt. With the local log and route running, `npx sello call-http-demo` sends the demo request for you.
 
 ## The First 10 Minutes
 
 If you are implementing Sello, start with one local loop:
 
-1. Generate a fixed owner HPKE key pair.
-2. Generate a fixed service Ed25519 signing key.
+1. Create or load one owner HPKE key pair and keep it constant for the local run.
+2. Create or load one service Ed25519 signing key and keep it constant for the local run.
 3. Create one mock compact JWS token containing `owner_hpke_pk` and `sello_logs`.
-4. Have the service create one receipt for one fake action.
+4. Have the service create one receipt for one mock action.
 5. Store the receipt in a mock log under `sello_token_ref`.
 6. Have the owner fetch, verify, and decrypt the receipt.
+
+For the first local loop, start with the reference helpers instead of writing crypto setup by hand:
+
+```ts
+import { generateEd25519KeyPair, generateHpkeKeyPair, MockTransparencyLog } from "sello";
+
+const owner = generateHpkeKeyPair();
+const service = generateEd25519KeyPair();
+const tokenIssuer = generateEd25519KeyPair();
+const log = new MockTransparencyLog("https://rekor.example.com/api");
+```
+
+Then sign the token with `signSelloJwsToken(...)`, create the receipt with `createReceiptFromJwsToken(...)`, and verify it with `verifyReceipts(...)`. For a compact runnable version, read [`src/cli/demo.ts`](src/cli/demo.ts).
 
 Do not start with Rekor, MCP middleware, distributed identity, or CLI polish. Those become much easier once one local receipt works end to end.
 
@@ -218,7 +212,7 @@ A Sello-aware service does this for each agent action:
 
 The service signs what it observed. It does not need the owner's private key, and it does not need to understand the owner's downstream audit workflow.
 
-For most services, Sello should fit as middleware around an existing request handler: verify token, run action, emit receipt.
+For most services, Sello should fit as middleware around an existing request flow: verify token, run action, emit receipt.
 
 ## Owner Verification
 
