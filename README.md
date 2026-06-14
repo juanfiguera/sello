@@ -8,6 +8,7 @@
   <a href="https://www.npmjs.com/package/sello"><img alt="npm downloads" src="https://img.shields.io/npm/dm/sello?style=flat-square&label=downloads&labelColor=0b1011&color=e8f7ef"></a>
   <a href="LICENSE"><img alt="license Apache-2.0" src="https://img.shields.io/npm/l/sello?style=flat-square&label=license&labelColor=0b1011&color=e8f7ef"></a>
   <a href="package.json"><img alt="Node.js 22.7 or newer" src="https://img.shields.io/badge/node-%3E%3D22.7-e8f7ef?style=flat-square&labelColor=0b1011"></a>
+  <a href="python/pyproject.toml"><img alt="Python 3.9 or newer" src="https://img.shields.io/badge/python-%3E%3D3.9-e8f7ef?style=flat-square&labelColor=0b1011"></a>
   <a href="https://arxiv.org/abs/2606.04193"><img alt="arXiv 2606.04193" src="https://img.shields.io/badge/arXiv-2606.04193-e8f7ef?style=flat-square&labelColor=0b1011"></a>
 </p>
 
@@ -62,6 +63,8 @@ http://localhost:8787/actions
 
 ## Add Sello to a Tool
 
+TypeScript:
+
 ```ts
 import { sello } from "sello";
 
@@ -70,6 +73,18 @@ const receipts = sello.service();
 export const createEvent = receipts.tool("calendar.create_event", async (request) => {
   return calendar.events.create(request);
 });
+```
+
+Python:
+
+```py
+import sello
+
+receipts = sello.service()
+
+@receipts.tool("calendar.create_event")
+def create_event(request):
+    return calendar.events.create(request)
 ```
 
 In local dev, `npx sello dev` supplies the config this snippet needs. In production, configure your service with a service id, service signing key, token issuer, and log URL:
@@ -125,13 +140,14 @@ Sello does not prove that the agent called every service it should have called, 
 ## Learn More
 
 - [SDK Quickstart](docs/sdk-quickstart.md): local dev, HTTP demo, self-hosted config, and hosted config.
+- [Python SDK](python/README.md): Python package layout, install command, and test command.
 - [Protocol Walkthrough](docs/protocol-walkthrough.md): the primitive receipt loop for implementers.
 - [SPEC.md](SPEC.md): the Sello protocol draft.
 - [Notarized Agents paper](https://arxiv.org/abs/2606.04193): design rationale, threat model, and prior art.
 - [examples/mcp-minimal-server.ts](examples/mcp-minimal-server.ts): a small MCP-shaped integration.
 - [docs/security-review.md](docs/security-review.md) and [docs/sdk-security-audit.md](docs/sdk-security-audit.md): current review notes.
 
-This package is TypeScript today; no Python SDK ships yet. Live Rekor proof verification and production identity operations are still future work.
+The TypeScript SDK is the npm package. The Python SDK lives in [`python/`](python/) and currently focuses on service-side receipt emission. Live Rekor proof verification and production identity operations are still future work.
 
 ## Core Terms
 

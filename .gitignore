@@ -3,6 +3,10 @@ find-my-for-ai-agents.md
 node_modules/
 coverage/
 dist/
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
 .DS_Store
 package-lock.json
 bench-*.json

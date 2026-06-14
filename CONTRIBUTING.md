@@ -24,6 +24,13 @@ node --run test
 node --run package:test
 ```
 
+Run the Python SDK checks:
+
+```bash
+python -m pip install ./python
+python -m unittest discover -s python/tests
+```
+
 For a local receipt loop:
 
 ```bash
@@ -44,4 +51,3 @@ npx --yes sello actions
 ## Security And Protocol Review
 
 Public design review is welcome when the issue can be discussed safely. For sensitive reports, see [SECURITY.md](SECURITY.md).
-
