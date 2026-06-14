@@ -11,7 +11,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+const root = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 const tmp = mkdtempSync(join(tmpdir(), "sello-package-test-"));
 const packDir = join(tmp, "pack");
 const projectDir = join(tmp, "consumer");

@@ -86,9 +86,9 @@ or open:
 http://localhost:8787/actions
 ```
 
-Both examples read `.sello/dev.json`, wrap a fake calendar handler, submit one encrypted receipt, and let the owner verify it locally.
+Both examples read `.sello/dev.json`, wrap a mock calendar handler, submit one encrypted receipt, and let the owner verify it locally.
 
-For the smallest production-shaped MCP boundary, see [`examples/mcp-minimal-server.ts`](../examples/mcp-minimal-server.ts). It wraps one `tools/call` handler with `sello.service()` and leaves unknown tools unreceipted.
+For the smallest production-shaped MCP boundary, see [`sdks/typescript/examples/mcp-minimal-server.ts`](../sdks/typescript/examples/mcp-minimal-server.ts). It wraps one `tools/call` handler with `sello.service()` and leaves unknown tools unreceipted.
 
 For your own tool server, copy the printed service env:
 

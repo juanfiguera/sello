@@ -28,8 +28,8 @@ node -v # must be v22.7.0 or newer
 node --run test
 node --run package:test
 npm pack --dry-run
-node --experimental-strip-types src/cli/sello.ts --help
-node --experimental-strip-types src/cli/sello.ts dev --dry-run
+node --experimental-strip-types sdks/typescript/src/cli/sello.ts --help
+node --experimental-strip-types sdks/typescript/src/cli/sello.ts dev --dry-run
 ```
 
 ## npm Verification

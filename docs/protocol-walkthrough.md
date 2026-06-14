@@ -17,7 +17,7 @@ Run the complete loop first:
 node --run demo
 ```
 
-The runnable source is [`src/cli/demo.ts`](../src/cli/demo.ts).
+The runnable source is [`sdks/typescript/src/cli/demo.ts`](../sdks/typescript/src/cli/demo.ts).
 
 ## Local Pieces
 
@@ -72,4 +72,3 @@ You know the loop works when the owner can print one verified receipt:
 ```
 
 Do not start with Rekor, MCP middleware, distributed identity, or CLI polish. Those become much easier once one local receipt works end to end.
-

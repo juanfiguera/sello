@@ -27,8 +27,8 @@ node --run package:test
 Run the Python SDK checks:
 
 ```bash
-python -m pip install ./python
-python -m unittest discover -s python/tests
+python -m pip install ./sdks/python
+python -m unittest discover -s sdks/python/tests
 ```
 
 For a local receipt loop:

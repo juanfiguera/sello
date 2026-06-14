@@ -8,13 +8,14 @@
   <a href="https://www.npmjs.com/package/sello"><img alt="npm downloads" src="https://img.shields.io/npm/dm/sello?style=flat-square&label=downloads&labelColor=0b1011&color=e8f7ef"></a>
   <a href="LICENSE"><img alt="license Apache-2.0" src="https://img.shields.io/npm/l/sello?style=flat-square&label=license&labelColor=0b1011&color=e8f7ef"></a>
   <a href="package.json"><img alt="Node.js 22.7 or newer" src="https://img.shields.io/badge/node-%3E%3D22.7-e8f7ef?style=flat-square&labelColor=0b1011"></a>
-  <a href="python/pyproject.toml"><img alt="Python 3.9 or newer" src="https://img.shields.io/badge/python-%3E%3D3.9-e8f7ef?style=flat-square&labelColor=0b1011"></a>
+  <a href="sdks/python/pyproject.toml"><img alt="Python 3.9 or newer" src="https://img.shields.io/badge/python-%3E%3D3.9-e8f7ef?style=flat-square&labelColor=0b1011"></a>
   <a href="https://arxiv.org/abs/2606.04193"><img alt="arXiv 2606.04193" src="https://img.shields.io/badge/arXiv-2606.04193-e8f7ef?style=flat-square&labelColor=0b1011"></a>
 </p>
 
 <p align="center">
   <a href="#try-it">Quickstart</a> &middot;
   <a href="#add-sello-to-a-tool">Add Sello</a> &middot;
+  <a href="sdks/README.md">SDKs</a> &middot;
   <a href="#see-logged-actions">Actions</a> &middot;
   <a href="#how-it-works">How It Works</a> &middot;
   <a href="#learn-more">Learn More</a> &middot;
@@ -140,14 +141,15 @@ Sello does not prove that the agent called every service it should have called, 
 ## Learn More
 
 - [SDK Quickstart](docs/sdk-quickstart.md): local dev, HTTP demo, self-hosted config, and hosted config.
-- [Python SDK](python/README.md): Python package layout, install command, and test command.
+- [SDKs](sdks/README.md): TypeScript and Python package layout.
+- [Python SDK](sdks/python/README.md): Python package install command, scope, and test command.
 - [Protocol Walkthrough](docs/protocol-walkthrough.md): the primitive receipt loop for implementers.
 - [SPEC.md](SPEC.md): the Sello protocol draft.
 - [Notarized Agents paper](https://arxiv.org/abs/2606.04193): design rationale, threat model, and prior art.
-- [examples/mcp-minimal-server.ts](examples/mcp-minimal-server.ts): a small MCP-shaped integration.
+- [sdks/typescript/examples/mcp-minimal-server.ts](sdks/typescript/examples/mcp-minimal-server.ts): a small MCP-shaped integration.
 - [docs/security-review.md](docs/security-review.md) and [docs/sdk-security-audit.md](docs/sdk-security-audit.md): current review notes.
 
-The TypeScript SDK is the npm package. The Python SDK lives in [`python/`](python/) and currently focuses on service-side receipt emission. Live Rekor proof verification and production identity operations are still future work.
+The TypeScript SDK is the npm package and lives in [`sdks/typescript/`](sdks/typescript/). The Python SDK lives in [`sdks/python/`](sdks/python/) and currently focuses on service-side receipt emission. Live Rekor proof verification and production identity operations are still future work.
 
 ## Core Terms
 

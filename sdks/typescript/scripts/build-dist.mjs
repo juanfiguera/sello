@@ -11,8 +11,8 @@ import { stripTypeScriptTypes } from "node:module";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const srcRoot = join(root, "src");
+const root = join(dirname(fileURLToPath(import.meta.url)), "../../..");
+const srcRoot = join(root, "sdks/typescript/src");
 const distRoot = join(root, "dist");
 const cliEntrypoints = new Set([
   "cli/bench.js",

@@ -7,7 +7,7 @@ These notes cover the first Stripe-style SDK implementation pass. They are writt
 - Service emission and owner viewing are documented as separate environments.
 - The service process is not required to hold `SELLO_OWNER_KEY`.
 - Hosted `sello.build` is described as optional convenience, not as a protocol dependency.
-- Deferred production features are named in `docs/sdk-build-plan.md`.
+- Deferred production features are named in the README, quickstart, and this audit note.
 
 ## Phase 1: Env-First Facade
 

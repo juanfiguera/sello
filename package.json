@@ -7,7 +7,7 @@
   "sideEffects": false,
   "exports": {
     ".": "./dist/index.js",
-    "./fixtures/vectors/sello-v0.1.json": "./fixtures/vectors/sello-v0.1.json",
+    "./fixtures/vectors/sello-v0.1.json": "./sdks/typescript/fixtures/vectors/sello-v0.1.json",
     "./spec": "./SPEC.md",
     "./package.json": "./package.json"
   },
@@ -18,27 +18,27 @@
   },
   "files": [
     "dist",
-    "examples",
-    "src",
-    "fixtures/vectors",
+    "sdks/typescript/examples",
+    "sdks/typescript/src",
+    "sdks/typescript/fixtures/vectors",
     "docs",
     "SPEC.md",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
-    "actions": "node --experimental-strip-types src/cli/sello.ts actions",
-    "bench": "node --experimental-strip-types src/cli/bench.ts",
-    "demo": "node --experimental-strip-types src/cli/demo.ts",
-    "dev": "node --experimental-strip-types src/cli/sello.ts dev",
-    "example:mcp:minimal": "node --test --experimental-strip-types test/examples/mcp-minimal-server.test.ts",
-    "example:mcp": "node --experimental-strip-types examples/mcp-tool-server.ts",
-    "example:tool": "node --experimental-strip-types examples/quickstart-tool.ts",
-    "build": "node --disable-warning=ExperimentalWarning scripts/build-dist.mjs",
-    "package:test": "node scripts/package-smoke.mjs",
-    "pack:check": "npm pack --dry-run",
-    "prepack": "node --disable-warning=ExperimentalWarning scripts/build-dist.mjs",
-    "test": "node --test --experimental-strip-types"
+    "actions": "node --experimental-strip-types sdks/typescript/src/cli/sello.ts actions",
+    "bench": "node --experimental-strip-types sdks/typescript/src/cli/bench.ts",
+    "demo": "node --experimental-strip-types sdks/typescript/src/cli/demo.ts",
+    "dev": "node --experimental-strip-types sdks/typescript/src/cli/sello.ts dev",
+    "example:mcp:minimal": "node --test --experimental-strip-types sdks/typescript/test/examples/mcp-minimal-server.test.ts",
+    "example:mcp": "node --experimental-strip-types sdks/typescript/examples/mcp-tool-server.ts",
+    "example:tool": "node --experimental-strip-types sdks/typescript/examples/quickstart-tool.ts",
+    "build": "node --disable-warning=ExperimentalWarning sdks/typescript/scripts/build-dist.mjs",
+    "package:test": "node sdks/typescript/scripts/package-smoke.mjs",
+    "pack:check": "node sdks/typescript/scripts/pack-check.mjs",
+    "prepack": "node --disable-warning=ExperimentalWarning sdks/typescript/scripts/build-dist.mjs",
+    "test": "cd sdks/typescript && node --test --experimental-strip-types"
   },
   "engines": {
     "node": ">=22.7.0"

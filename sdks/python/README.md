@@ -1,9 +1,9 @@
 # Sello Python SDK
 
-Python support lives in `python/` so the repository stays easy to scan:
+Python support lives in `sdks/python/` so the repository stays easy to scan:
 
-- `src/` contains the TypeScript reference implementation.
-- `python/src/sello/` contains the Python SDK.
+- `sdks/typescript/` contains the TypeScript SDK and reference implementation.
+- `sdks/python/src/sello/` contains the Python SDK.
 
 The Python SDK mirrors the TypeScript service-side facade:
 
@@ -26,8 +26,8 @@ From the repository root:
 ```bash
 python3 -m venv .venv
 . .venv/bin/activate
-python -m pip install ./python
-python -m unittest discover -s python/tests
+python -m pip install ./sdks/python
+python -m unittest discover -s sdks/python/tests
 ```
 
 ## Current Scope
