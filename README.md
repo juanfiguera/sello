@@ -158,7 +158,7 @@ Sello does not prove that the agent called every service it should have called, 
 - [sdks/typescript/examples/mcp-minimal-server.ts](sdks/typescript/examples/mcp-minimal-server.ts): a small MCP-shaped integration.
 - [docs/security-review.md](docs/security-review.md) and [docs/sdk-security-audit.md](docs/sdk-security-audit.md): current review notes.
 
-The TypeScript SDK is published on [npm](https://www.npmjs.com/package/sello) and lives in [`sdks/typescript/`](sdks/typescript/). The Python SDK is published on [PyPI](https://pypi.org/project/sello/) and lives in [`sdks/python/`](sdks/python/). Live Rekor proof verification and production identity operations are still future work.
+The TypeScript SDK is published on [npm](https://www.npmjs.com/package/sello) and lives in [`sdks/typescript/`](sdks/typescript/). The Python SDK is published on [PyPI](https://pypi.org/project/sello/) and lives in [`sdks/python/`](sdks/python/). Both SDKs support the same service-side `sello.service()` flow; Python uses the `@receipts.tool(...)` decorator. Live Rekor proof verification and production identity operations are still future work.
 
 ## Core Terms
 

@@ -1,3 +1,5 @@
+from importlib.metadata import PackageNotFoundError, version
+
 from . import logs
 from .keys import (
     KeyPair,
@@ -12,10 +14,16 @@ from .keys import (
 from .service import SelloDeniedError, SelloReceipts, service
 from .token import sign_sello_jws_token, verify_sello_jws_token
 
+try:
+    __version__ = version("sello")
+except PackageNotFoundError:
+    __version__ = "0.1.12"
+
 __all__ = [
     "KeyPair",
     "SelloDeniedError",
     "SelloReceipts",
+    "__version__",
     "base64url_decode",
     "base64url_encode",
     "encode_owner_key",

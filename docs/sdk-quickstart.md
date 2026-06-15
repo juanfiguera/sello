@@ -97,6 +97,14 @@ node --run example:tool
 node --run actions
 ```
 
+Or run the matching Python example:
+
+```bash
+python -m pip install ./sdks/python
+python sdks/python/examples/quickstart_tool.py
+npx --yes sello actions
+```
+
 For an MCP-shaped `tools/call` boundary, run:
 
 ```bash

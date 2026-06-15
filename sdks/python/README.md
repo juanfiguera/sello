@@ -23,6 +23,24 @@ def create_event(request):
 
 The service process emits receipts. It does not need the owner private key.
 
+## Quickstart Example
+
+From the repository root, start the local dev log in one terminal:
+
+```bash
+npx --yes sello dev
+```
+
+Then run the Python example in another terminal:
+
+```bash
+python -m pip install ./sdks/python
+python sdks/python/examples/quickstart_tool.py
+npx --yes sello actions
+```
+
+The example reads `.sello/dev.json`, wraps a mock calendar action with `@receipts.tool(...)`, emits one encrypted receipt, and then lets the Sello CLI verify it locally.
+
 ## Local Development
 
 For contributing to the SDK from the repository root:

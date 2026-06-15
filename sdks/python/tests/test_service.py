@@ -1,4 +1,6 @@
+import importlib.util
 import os
+from pathlib import Path
 import unittest
 from unittest.mock import patch
 
@@ -139,6 +141,37 @@ class SelloPythonSdkTests(unittest.TestCase):
 
         self.assertEqual(fixture.decrypt_first_receipt()["result-status"], "success")
 
+    def test_package_exposes_version(self):
+        self.assertRegex(sello.__version__, r"^\d+\.\d+\.\d+")
+
+    def test_quickstart_example_emits_receipt_without_live_server(self):
+        fixture = make_fixture()
+        example = load_quickstart_example()
+
+        result = example.run_quickstart_tool(
+            state={
+                "serviceId": SERVICE_ID,
+                "serviceKey": sello.encode_service_key(
+                    fixture.kid,
+                    fixture.service.private_key,
+                ),
+                "tokenIssuerPublicKey": sello.base64url_encode(fixture.issuer.public_key),
+                "agentToken": fixture.authorization_token,
+                "logUrl": fixture.log.log_url,
+                "logEndpoint": "http://localhost:8787/api",
+            },
+            log=fixture.log,
+            now=lambda: TIMESTAMP,
+            request={"title": "Review launch plan"},
+        )
+        body = fixture.decrypt_first_receipt()
+
+        self.assertEqual(result["response"]["id"], "evt_review_launch_plan")
+        self.assertEqual(result["response"]["status"], "created")
+        self.assertEqual(result["actionsUrl"], "http://localhost:8787/actions")
+        self.assertEqual(body["action-type"], ACTION_TYPE)
+        self.assertEqual(body["result-status"], "success")
+
 
 class Fixture:
     def __init__(self):
@@ -195,6 +228,15 @@ def make_fixture():
     return Fixture()
 
 
+def load_quickstart_example():
+    path = Path(__file__).resolve().parents[1] / "examples" / "quickstart_tool.py"
+    spec = importlib.util.spec_from_file_location("sello_python_quickstart_tool", path)
+    if spec is None or spec.loader is None:
+        raise AssertionError("could not load Python quickstart example")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 if __name__ == "__main__":
     unittest.main()
-
