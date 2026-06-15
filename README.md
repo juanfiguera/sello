@@ -1,4 +1,4 @@
-![Sello banner](docs/assets/sello-banner.png)
+![Sello banner](https://raw.githubusercontent.com/juanfiguera/sello/main/docs/assets/sello-banner.png)
 
 <h1 align="center">Sello</h1>
 
