@@ -2,7 +2,15 @@
 
 Sello's SDK is designed to make the first receipt easy: wrap a tool handler, run it, and inspect verified actions.
 
-Requires Node.js 22.7 or newer.
+The local demo CLI and action viewer require Node.js 22.7 or newer. The Python SDK requires Python 3.9 or newer.
+
+## Install
+
+TypeScript:
+
+```bash
+npm install sello
+```
 
 ```ts
 import { sello } from "sello";
@@ -12,6 +20,22 @@ const receipts = sello.service();
 export const createEvent = receipts.tool("calendar.create_event", async (request) => {
   return calendar.events.create(request);
 });
+```
+
+Python:
+
+```bash
+pip install sello
+```
+
+```py
+import sello
+
+receipts = sello.service()
+
+@receipts.tool("calendar.create_event")
+def create_event(request):
+    return calendar.events.create(request)
 ```
 
 The service process emits receipts. It does not need the owner private key.
