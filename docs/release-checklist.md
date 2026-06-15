@@ -54,6 +54,7 @@ python -m twine check dist/*
 ```
 
 The PyPI project uses trusted publishing from `.github/workflows/release.yml`.
+Publishing a GitHub Release for a version tag triggers the PyPI publish job. Use the manual workflow dispatch only when you intentionally want to publish Python without creating a GitHub Release; rerunning the same version is safe because the workflow skips files that already exist on PyPI.
 
 ## Publish
 
@@ -66,6 +67,7 @@ git push origin main --tags
 After publishing:
 
 - Confirm `npm view sello version` shows the new version.
+- Publish a GitHub Release for the pushed tag so PyPI trusted publishing runs.
 - Confirm `python -m pip index versions sello` shows the new version after PyPI publishing.
 - Confirm `npx sello --help` works from a clean temp directory.
 - Confirm GitHub Actions passes on `main`.
