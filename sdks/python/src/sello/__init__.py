@@ -17,7 +17,7 @@ from .token import sign_sello_jws_token, verify_sello_jws_token
 try:
     __version__ = version("sello")
 except PackageNotFoundError:
-    __version__ = "0.1.12"
+    __version__ = "0.1.13"
 
 __all__ = [
     "KeyPair",

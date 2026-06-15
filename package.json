@@ -1,6 +1,6 @@
 {
   "name": "sello",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "description": "Reference implementation of the Sello protocol for service-signed AI agent receipts.",
   "type": "module",
   "license": "Apache-2.0",
