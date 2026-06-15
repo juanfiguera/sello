@@ -1,6 +1,6 @@
 # Release Checklist
 
-Use this checklist before publishing a Sello npm release.
+Use this checklist before publishing a Sello release.
 
 ## Preflight
 
@@ -8,6 +8,7 @@ Use this checklist before publishing a Sello npm release.
 - Confirm `node -v` is `v22.7.0` or newer.
 - If multiple Node versions are installed, confirm `PATH` resolves `node` to Node 22.7 or newer before running package scripts.
 - Confirm `package.json` has the intended version.
+- Confirm `sdks/python/pyproject.toml` has the intended version when publishing Python.
 - Confirm `README.md` and `docs/sdk-quickstart.md` match the current CLI and examples.
 - Confirm the paper link and local PDF are current, if the paper changed.
 
@@ -42,6 +43,18 @@ npm publish --dry-run
 
 If the package name is already published, confirm the local version is greater than the registry version before publishing.
 
+## PyPI Verification
+
+```bash
+python -m pip install --upgrade build twine
+cd sdks/python
+rm -rf dist
+python -m build
+python -m twine check dist/*
+```
+
+The PyPI project uses trusted publishing from `.github/workflows/release.yml`.
+
 ## Publish
 
 ```bash
@@ -53,5 +66,6 @@ git push origin main --tags
 After publishing:
 
 - Confirm `npm view sello version` shows the new version.
+- Confirm `python -m pip index versions sello` shows the new version after PyPI publishing.
 - Confirm `npx sello --help` works from a clean temp directory.
 - Confirm GitHub Actions passes on `main`.
