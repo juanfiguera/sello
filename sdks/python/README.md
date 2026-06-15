@@ -7,6 +7,10 @@ Python support lives in `sdks/python/` so the repository stays easy to scan:
 
 The Python SDK mirrors the TypeScript service-side facade:
 
+```bash
+pip install sello
+```
+
 ```py
 import sello
 
@@ -21,7 +25,7 @@ The service process emits receipts. It does not need the owner private key.
 
 ## Local Development
 
-From the repository root:
+For contributing to the SDK from the repository root:
 
 ```bash
 python3 -m venv .venv
@@ -32,7 +36,7 @@ python -m unittest discover -s sdks/python/tests
 
 ## Current Scope
 
-This first Python SDK pass focuses on service-side receipt emission:
+The Python SDK currently focuses on service-side receipt emission:
 
 - env-first `sello.service()` config,
 - `@receipts.tool(...)` decorator support,

@@ -5,6 +5,7 @@
 <p align="center">
   <a href="https://github.com/juanfiguera/sello/actions/workflows/ci.yml"><img alt="build status" src="https://img.shields.io/github/actions/workflow/status/juanfiguera/sello/ci.yml?branch=main&style=flat-square&label=build&labelColor=0b1011&color=e8f7ef"></a>
   <a href="https://www.npmjs.com/package/sello"><img alt="npm version" src="https://img.shields.io/npm/v/sello?style=flat-square&label=npm&labelColor=0b1011&color=e8f7ef"></a>
+  <a href="https://pypi.org/project/sello/"><img alt="PyPI version" src="https://img.shields.io/pypi/v/sello?style=flat-square&label=pypi&labelColor=0b1011&color=e8f7ef"></a>
   <a href="https://www.npmjs.com/package/sello"><img alt="npm downloads" src="https://img.shields.io/npm/dm/sello?style=flat-square&label=downloads&labelColor=0b1011&color=e8f7ef"></a>
   <a href="LICENSE"><img alt="license Apache-2.0" src="https://img.shields.io/npm/l/sello?style=flat-square&label=license&labelColor=0b1011&color=e8f7ef"></a>
   <a href="package.json"><img alt="Node.js 22.7 or newer" src="https://img.shields.io/badge/node-%3E%3D22.7-e8f7ef?style=flat-square&labelColor=0b1011"></a>
@@ -66,6 +67,10 @@ http://localhost:8787/actions
 
 TypeScript:
 
+```bash
+npm install sello
+```
+
 ```ts
 import { sello } from "sello";
 
@@ -77,6 +82,10 @@ export const createEvent = receipts.tool("calendar.create_event", async (request
 ```
 
 Python:
+
+```bash
+pip install sello
+```
 
 ```py
 import sello
@@ -149,7 +158,7 @@ Sello does not prove that the agent called every service it should have called, 
 - [sdks/typescript/examples/mcp-minimal-server.ts](sdks/typescript/examples/mcp-minimal-server.ts): a small MCP-shaped integration.
 - [docs/security-review.md](docs/security-review.md) and [docs/sdk-security-audit.md](docs/sdk-security-audit.md): current review notes.
 
-The TypeScript SDK is the npm package and lives in [`sdks/typescript/`](sdks/typescript/). The Python SDK lives in [`sdks/python/`](sdks/python/) and currently focuses on service-side receipt emission. Live Rekor proof verification and production identity operations are still future work.
+The TypeScript SDK is published on [npm](https://www.npmjs.com/package/sello) and lives in [`sdks/typescript/`](sdks/typescript/). The Python SDK is published on [PyPI](https://pypi.org/project/sello/) and lives in [`sdks/python/`](sdks/python/). Live Rekor proof verification and production identity operations are still future work.
 
 ## Core Terms
 
