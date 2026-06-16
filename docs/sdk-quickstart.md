@@ -126,6 +126,8 @@ receipts.mcpTool("calendar.create_event", handler, {
 });
 ```
 
+For the complete MCP placement notes, see [MCP Integration](mcp.md).
+
 Or run the matching Python example:
 
 ```bash

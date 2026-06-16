@@ -16,7 +16,7 @@
 <p align="center">
   <a href="#try-it">Quickstart</a> &middot;
   <a href="#add-sello-to-a-tool">Add Sello</a> &middot;
-  <a href="#add-sello-to-an-mcp-server">MCP</a> &middot;
+  <a href="docs/mcp.md">MCP</a> &middot;
   <a href="sdks/README.md">SDKs</a> &middot;
   <a href="#see-logged-actions">Actions</a> &middot;
   <a href="#how-it-works">How It Works</a> &middot;
@@ -150,6 +150,8 @@ receipts.mcpTool("calendar.create_event", handler, {
 });
 ```
 
+See [docs/mcp.md](docs/mcp.md) for token handling, hash boundaries, unknown-tool behavior, and action viewing.
+
 ## See Logged Actions
 
 ```bash
@@ -184,6 +186,7 @@ Sello does not prove that the agent called every service it should have called, 
 ## Learn More
 
 - [SDK Quickstart](docs/sdk-quickstart.md): local dev, HTTP demo, self-hosted config, and hosted config.
+- [MCP Integration](docs/mcp.md): where Sello wraps MCP tool callbacks.
 - [SDKs](sdks/README.md): TypeScript and Python package layout.
 - [Python SDK](sdks/python/README.md): Python package install command, scope, and test command.
 - [Protocol Walkthrough](docs/protocol-walkthrough.md): the primitive receipt loop for implementers.
