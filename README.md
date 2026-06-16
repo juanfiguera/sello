@@ -166,6 +166,15 @@ By default, Sello hashes the A2A JSON-RPC `method` and `params`, excluding reque
 
 See [docs/a2a.md](docs/a2a.md) for token handling, hash boundaries, unknown-method behavior, and action viewing.
 
+## Examples
+
+| What you want to wire | Start here |
+| --- | --- |
+| A normal tool handler | [SDK Quickstart](docs/sdk-quickstart.md) and [`quickstart-tool.ts`](sdks/typescript/examples/quickstart-tool.ts) |
+| An MCP tool | [MCP Integration](docs/mcp.md) and [`mcp-minimal-server.ts`](sdks/typescript/examples/mcp-minimal-server.ts) |
+| An A2A message handler | [A2A Integration](docs/a2a.md) and [`a2a-minimal-server.ts`](sdks/typescript/examples/a2a-minimal-server.ts) |
+| Verified action viewing | `npx sello actions` or `http://localhost:8787/actions` |
+
 ## See Logged Actions
 
 ```bash
@@ -207,8 +216,6 @@ Sello does not prove that the agent called every service it should have called, 
 - [Protocol Walkthrough](docs/protocol-walkthrough.md): the primitive receipt loop for implementers.
 - [SPEC.md](SPEC.md): the Sello protocol draft.
 - [Notarized Agents paper](https://arxiv.org/abs/2606.04193): design rationale, threat model, and prior art.
-- [sdks/typescript/examples/mcp-minimal-server.ts](sdks/typescript/examples/mcp-minimal-server.ts): a small MCP integration.
-- [sdks/typescript/examples/a2a-minimal-server.ts](sdks/typescript/examples/a2a-minimal-server.ts): a small A2A integration.
 - [docs/security-review.md](docs/security-review.md) and [docs/sdk-security-audit.md](docs/sdk-security-audit.md): current review notes.
 
 The TypeScript SDK is published on [npm](https://www.npmjs.com/package/sello) and lives in [`sdks/typescript/`](sdks/typescript/). The Python SDK is published on [PyPI](https://pypi.org/project/sello/) and lives in [`sdks/python/`](sdks/python/). Both SDKs support the same service-side `sello.service()` flow; Python uses the `@receipts.tool(...)` decorator. MCP and A2A helpers are currently TypeScript-first. Live Rekor proof verification and production identity operations are still future work.

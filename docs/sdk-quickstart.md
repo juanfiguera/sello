@@ -78,6 +78,15 @@ npx --yes sello actions
 
 Local dev state lives under `.sello/`. The encrypted dev log is stored in `.sello/dev-log.jsonl`, so receipts survive restarting `sello dev` without being committed to git.
 
+## Which Wrapper?
+
+| Existing boundary | Use |
+| --- | --- |
+| Plain function or HTTP route | `receipts.tool("calendar.create_event", handler)` |
+| MCP `tools/call` callback | `receipts.mcpTool("calendar.create_event", handler)` |
+| A2A JSON-RPC message handler | `receipts.a2aMessage(handler)` |
+| Owner action viewing | `npx sello actions` |
+
 ## Troubleshooting
 
 - **Port already in use:** run `npx sello dev --port 8791`.
