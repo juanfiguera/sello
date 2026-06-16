@@ -146,6 +146,26 @@ receipts.mcpTool("calendar.create_event", handler, {
 
 See [docs/mcp.md](docs/mcp.md) for token handling, hash boundaries, unknown-tool behavior, and action viewing.
 
+## Add Sello to an A2A Agent
+
+If your service receives Agent2Agent messages, wrap the message handler:
+
+```ts
+import { sello } from "sello";
+
+const receipts = sello.service();
+
+export const sendMessage = receipts.a2aMessage(async (request, context) => {
+  return agent.handleMessage(request, context);
+});
+```
+
+`a2aMessage` verifies the agent token before your handler runs, preserves the handler's return value, rethrows handler errors, and emits a receipt with action type `a2a.<method>`, such as `a2a.message/send`.
+
+By default, Sello hashes the A2A JSON-RPC `method` and `params`, excluding request ids, headers, bearer tokens, and runtime context.
+
+See [docs/a2a.md](docs/a2a.md) for token handling, hash boundaries, unknown-method behavior, and action viewing.
+
 ## See Logged Actions
 
 ```bash
@@ -181,15 +201,17 @@ Sello does not prove that the agent called every service it should have called, 
 
 - [SDK Quickstart](docs/sdk-quickstart.md): local dev, HTTP demo, self-hosted config, and hosted config.
 - [MCP Integration](docs/mcp.md): where Sello wraps MCP tool callbacks.
+- [A2A Integration](docs/a2a.md): where Sello wraps Agent2Agent message handlers.
 - [SDKs](sdks/README.md): TypeScript and Python package layout.
 - [Python SDK](sdks/python/README.md): Python package install command, scope, and test command.
 - [Protocol Walkthrough](docs/protocol-walkthrough.md): the primitive receipt loop for implementers.
 - [SPEC.md](SPEC.md): the Sello protocol draft.
 - [Notarized Agents paper](https://arxiv.org/abs/2606.04193): design rationale, threat model, and prior art.
 - [sdks/typescript/examples/mcp-minimal-server.ts](sdks/typescript/examples/mcp-minimal-server.ts): a small MCP integration.
+- [sdks/typescript/examples/a2a-minimal-server.ts](sdks/typescript/examples/a2a-minimal-server.ts): a small A2A integration.
 - [docs/security-review.md](docs/security-review.md) and [docs/sdk-security-audit.md](docs/sdk-security-audit.md): current review notes.
 
-The TypeScript SDK is published on [npm](https://www.npmjs.com/package/sello) and lives in [`sdks/typescript/`](sdks/typescript/). The Python SDK is published on [PyPI](https://pypi.org/project/sello/) and lives in [`sdks/python/`](sdks/python/). Both SDKs support the same service-side `sello.service()` flow; Python uses the `@receipts.tool(...)` decorator. Live Rekor proof verification and production identity operations are still future work.
+The TypeScript SDK is published on [npm](https://www.npmjs.com/package/sello) and lives in [`sdks/typescript/`](sdks/typescript/). The Python SDK is published on [PyPI](https://pypi.org/project/sello/) and lives in [`sdks/python/`](sdks/python/). Both SDKs support the same service-side `sello.service()` flow; Python uses the `@receipts.tool(...)` decorator. MCP and A2A helpers are currently TypeScript-first. Live Rekor proof verification and production identity operations are still future work.
 
 ## Core Terms
 

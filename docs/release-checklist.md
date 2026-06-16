@@ -17,6 +17,7 @@ Use this checklist before publishing a Sello release.
 ```bash
 node --run test
 node --run package:test
+node --run package:a2a-test
 node --run package:mcp-test
 npm pack --dry-run
 ```
@@ -30,6 +31,7 @@ cd "$tmpdir/sello"
 node -v # must be v22.7.0 or newer
 node --run test
 node --run package:test
+node --run package:a2a-test
 node --run package:mcp-test
 npm pack --dry-run
 node --experimental-strip-types sdks/typescript/src/cli/sello.ts --help
@@ -70,6 +72,7 @@ git push origin main --tags
 After publishing:
 
 - Confirm `npm view sello version` shows the new version.
+- Confirm `SELLO_PACKAGE_SPEC=sello@$(node -p "require('./package.json').version") node --run package:a2a-test` passes against the published npm package.
 - Confirm `SELLO_PACKAGE_SPEC=sello@$(node -p "require('./package.json').version") node --run package:mcp-test` passes against the published npm package.
 - Publish a GitHub Release for the pushed tag so PyPI trusted publishing runs.
 - Confirm `python -m pip index versions sello` shows the new version after PyPI publishing.

@@ -30,6 +30,7 @@ These notes cover the first Stripe-style SDK implementation pass. They are writt
 - Success, error, and denied paths emit receipts without including plaintext request or response bodies.
 - The wrapper uses the configured service identity and key for every receipt.
 - `receipts.mcpTool(...)` reuses the same wrapper path. It defaults to hashing the MCP `tools/call` method, tool name, and arguments, while excluding bearer tokens and transport context from the action input hash.
+- `receipts.a2aMessage(...)` reuses the same wrapper path. It defaults to hashing the A2A JSON-RPC method and params, while excluding bearer tokens, request ids, headers, and runtime context from the action input hash.
 
 ## Phase 4: Logs And Action Viewing
 
@@ -44,6 +45,7 @@ These notes cover the first Stripe-style SDK implementation pass. They are writt
 - The example uses `submit: { mode: "await" }` so the command succeeds only after the receipt append completes.
 - The example canonicalizes only tool input fields and excludes the authorization token wrapper from the action input hash.
 - The MCP-style example reads the bearer token from the transport header, but hashes only the `tools/call` method and params.
+- The A2A-style example reads the bearer token from the transport header, but hashes only the JSON-RPC method and params.
 - README and quickstart docs keep self-hosting first-class and describe `sello.build` as optional convenience.
 
 ## Residual Risks

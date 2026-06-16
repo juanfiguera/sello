@@ -2,7 +2,7 @@
 
 The protocol, paper, and project docs live at the repository root. Language SDKs live here:
 
-- [`typescript/`](typescript/): npm package source, CLI, examples, fixtures, and Node tests.
+- [`typescript/`](typescript/): npm package source, CLI, MCP/A2A helpers, examples, fixtures, and Node tests.
 - [`python/`](python/): Python package source and tests.
 
 Root commands still work from the repository top level:

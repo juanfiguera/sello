@@ -30,6 +30,29 @@ type ToolResponse = {
   id?: string;
 };
 
+type A2aMessageRequest = {
+  jsonrpc: "2.0";
+  id: string;
+  method: "message/send" | "message/stream";
+  params: {
+    message: {
+      role: "user";
+      parts: { kind: "text"; text: string }[];
+    };
+  };
+};
+
+type A2aMessageResponse = {
+  jsonrpc: "2.0";
+  id: string;
+  result: {
+    kind: "message";
+    messageId: string;
+    role: "agent";
+    parts: { kind: "text"; text: string }[];
+  };
+};
+
 describe("Stripe-style Sello SDK service wrapper", () => {
   it("wraps a tool and emits a verifiable success receipt", async () => {
     const fixture = makeFixture();
@@ -254,6 +277,174 @@ describe("Stripe-style Sello SDK service wrapper", () => {
     assert.equal(verified.receipts[0].receipt["action-type"], "custom.mcp.calendar");
   });
 
+  it("wraps an A2A message handler and emits a message/send receipt", async () => {
+    const fixture = makeFixture();
+    const receipts = sello.service({
+      ...fixture.serviceConfig(),
+      submit: { mode: "await" },
+    });
+    const wrapped = receipts.a2aMessage<
+      A2aMessageRequest,
+      A2aMessageResponse,
+      { headers: Headers }
+    >(async (request) => ({
+      jsonrpc: "2.0",
+      id: request.id,
+      result: {
+        kind: "message",
+        messageId: "msg-2",
+        role: "agent",
+        parts: [{ kind: "text", text: "created launch" }],
+      },
+    }));
+
+    const response = await wrapped(
+      fixture.a2aRequest("message/send"),
+      {
+        headers: new Headers({
+          authorization: `Bearer ${fixture.authorizationToken}`,
+        }),
+      },
+    );
+    const verified = verifyReceipts(fixture.ownerInput());
+
+    assert.equal(response.result.messageId, "msg-2");
+    assert.equal(verified.rejected.length, 0);
+    assert.equal(verified.receipts.length, 1);
+    assert.equal(verified.receipts[0].receipt["action-type"], "a2a.message/send");
+    assert.equal(verified.receipts[0].receipt["result-status"], "success");
+  });
+
+  it("hashes A2A method and params without JSON-RPC request ids", async () => {
+    const fixture = makeFixture();
+    const receipts = sello.service({
+      ...fixture.serviceConfig(),
+      submit: { mode: "await" },
+      now: () => "2026-06-04T10:12:04Z",
+    });
+    const wrapped = receipts.a2aMessage<
+      A2aMessageRequest,
+      A2aMessageResponse,
+      { authorization: string }
+    >(async (request) => ({
+      jsonrpc: "2.0",
+      id: request.id,
+      result: {
+        kind: "message",
+        messageId: `reply-${request.id}`,
+        role: "agent",
+        parts: [{ kind: "text", text: "created launch" }],
+      },
+    }));
+
+    await wrapped(fixture.a2aRequest("message/send", "a2a-1"), {
+      authorization: `Bearer ${fixture.authorizationToken}`,
+    });
+    await wrapped(fixture.a2aRequest("message/send", "a2a-2"), {
+      authorization: `Bearer ${fixture.authorizationToken}`,
+    });
+    const verified = verifyReceipts(fixture.ownerInput());
+
+    assert.equal(verified.rejected.length, 0);
+    assert.equal(verified.receipts.length, 2);
+    assert.equal(
+      toHex(verified.receipts[0].receipt["action-input-hash"]),
+      toHex(verified.receipts[1].receipt["action-input-hash"]),
+    );
+  });
+
+  it("supports custom A2A token extraction and action type", async () => {
+    const fixture = makeFixture();
+    const receipts = sello.service({
+      ...fixture.serviceConfig(),
+      submit: { mode: "await" },
+    });
+    const wrapped = receipts.a2aMessage<
+      A2aMessageRequest,
+      A2aMessageResponse,
+      { session: { token: string } }
+    >(
+      async (request) => ({
+        jsonrpc: "2.0",
+        id: request.id,
+        result: {
+          kind: "message",
+          messageId: "msg-3",
+          role: "agent",
+          parts: [{ kind: "text", text: "stream accepted" }],
+        },
+      }),
+      {
+        actionType: ({ request }) => `custom.${request.method}`,
+        authorizationToken: ({ context }) => context.session.token,
+      },
+    );
+
+    await wrapped(fixture.a2aRequest("message/stream"), {
+      session: { token: fixture.authorizationToken },
+    });
+    const verified = verifyReceipts(fixture.ownerInput());
+
+    assert.equal(verified.rejected.length, 0);
+    assert.equal(
+      verified.receipts[0].receipt["action-type"],
+      "custom.message/stream",
+    );
+  });
+
+  it("verifies A2A tokens before running dynamic action-type hooks", async () => {
+    const fixture = makeFixture();
+    const otherIssuer = generateEd25519KeyPair();
+    const badToken = signSelloJwsToken({
+      issuerPrivateKey: otherIssuer.privateKey,
+      payload: {
+        owner_hpke_pk: base64urlEncode(fixture.owner.publicKey),
+        sello_logs: [logUrl],
+      },
+    });
+    let actionTypeCalled = false;
+    let handlerCalled = false;
+    const receipts = sello.service({
+      ...fixture.serviceConfig(),
+      submit: { mode: "await" },
+    });
+    const wrapped = receipts.a2aMessage<
+      A2aMessageRequest,
+      A2aMessageResponse,
+      { authorization: string }
+    >(
+      async (request) => {
+        handlerCalled = true;
+        return {
+          jsonrpc: "2.0",
+          id: request.id,
+          result: {
+            kind: "message",
+            messageId: "msg-4",
+            role: "agent",
+            parts: [{ kind: "text", text: "should not run" }],
+          },
+        };
+      },
+      {
+        actionType: () => {
+          actionTypeCalled = true;
+          return "custom.a2a";
+        },
+      },
+    );
+
+    await assert.rejects(
+      () => wrapped(fixture.a2aRequest("message/send"), {
+        authorization: `Bearer ${badToken}`,
+      }),
+      /signature verification failed/,
+    );
+
+    assert.equal(actionTypeCalled, false);
+    assert.equal(handlerCalled, false);
+  });
+
   it("background submission returns before a slow append completes", async () => {
     const fixture = makeFixture();
     let resolveAppend: (() => void) | undefined;
@@ -377,6 +568,20 @@ function makeFixture() {
     request: (): ToolRequest => ({
       authorizationToken,
       params: { title: "launch" },
+    }),
+    a2aRequest: (
+      method: A2aMessageRequest["method"],
+      id = "a2a-call-1",
+    ): A2aMessageRequest => ({
+      jsonrpc: "2.0",
+      id,
+      method,
+      params: {
+        message: {
+          role: "user",
+          parts: [{ kind: "text", text: "create launch event" }],
+        },
+      },
     }),
     serviceConfig: (
       overrides: Partial<Parameters<typeof sello.service>[0] & { log: unknown }> = {},

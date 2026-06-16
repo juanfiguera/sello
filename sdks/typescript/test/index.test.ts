@@ -87,7 +87,20 @@ it("exports JWS token profile helpers from the package root", () => {
 });
 
 it("exports the Stripe-style SDK facade from the package root", () => {
+  const service = generateEd25519KeyPair();
+  const receipts = sello.service({
+    service: "calendar.example.com/test",
+    serviceKey: {
+      kid: new TextEncoder().encode("export-test-key"),
+      privateKey: service.privateKey,
+    },
+    tokenIssuer: service.publicKey,
+    log: sello.logs.memory("https://rekor.example.com/api"),
+  });
+
   assert.equal(typeof sello.service, "function");
   assert.equal(typeof sello.logs.memory, "function");
   assert.equal(typeof sello.logs.http, "function");
+  assert.equal(typeof receipts.a2aMessage, "function");
+  assert.equal(typeof receipts.mcpTool, "function");
 });

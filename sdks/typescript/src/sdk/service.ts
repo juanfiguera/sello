@@ -26,6 +26,8 @@ export type SelloValueOrGetter<Request, Value> =
   | Value
   | ((request: Request) => Value);
 
+export type SelloActionType<Request> = string | ((request: Request) => string);
+
 export type SelloReceiptEvent<Response = unknown> = {
   resultStatus: ResultStatus;
   receipt: BuiltReceipt;
@@ -72,6 +74,35 @@ export type SelloMcpToolOptions<Args, Response, Context = unknown> = {
   ) => Response | Promise<Response>;
 };
 
+export type SelloA2aMessageInvocation<Request, Context = unknown> = {
+  request: Request;
+  context: Context;
+};
+
+export type SelloA2aMessageHandler<Request, Response, Context = unknown> = (
+  request: Request,
+  context: Context,
+) => Response | Promise<Response>;
+
+export type SelloA2aMessageOptions<Request, Response, Context = unknown> = {
+  actionType?: SelloActionType<SelloA2aMessageInvocation<Request, Context>>;
+  authorizationToken?: SelloValueOrGetter<
+    SelloA2aMessageInvocation<Request, Context>,
+    string | Uint8Array
+  >;
+  canonicalizeInput?: (
+    invocation: SelloA2aMessageInvocation<Request, Context>,
+  ) => Uint8Array;
+  canonicalizeOutput?: (response: Response) => Uint8Array;
+  canonicalizeError?: (error: unknown) => Uint8Array;
+  isDenied?: (
+    invocation: SelloA2aMessageInvocation<Request, Context>,
+  ) => boolean | Promise<boolean>;
+  deniedResponse?: (
+    invocation: SelloA2aMessageInvocation<Request, Context>,
+  ) => Response | Promise<Response>;
+};
+
 export type SelloServiceConfig = {
   service?: string;
   serviceKey?: ServiceKeyInput;
@@ -101,6 +132,10 @@ export type SelloReceipts = {
     handler: SelloMcpToolHandler<Args, Response, Context>,
     options?: SelloMcpToolOptions<Args, Response, Context>,
   ): SelloMcpToolHandler<Args, Response, Context>;
+  a2aMessage<Request, Response, Context = unknown>(
+    handler: SelloA2aMessageHandler<Request, Response, Context>,
+    options?: SelloA2aMessageOptions<Request, Response, Context>,
+  ): SelloA2aMessageHandler<Request, Response, Context>;
   flush(): Promise<void>;
 };
 
@@ -151,11 +186,14 @@ export function createSelloService(input?: SelloServiceInput): SelloReceipts {
   }
 
   function wrapTool<Request, Response>(
-    actionType: string,
+    actionType: SelloActionType<Request>,
     handler: SelloToolHandler<Request, Response>,
     options: SelloToolOptions<Request, Response> = {},
   ): SelloToolHandler<Request, Response> {
-    if (typeof actionType !== "string" || actionType.length === 0) {
+    if (
+      (typeof actionType === "string" && actionType.length === 0) ||
+      (typeof actionType !== "string" && typeof actionType !== "function")
+    ) {
       throw new TypeError("Sello action type must be a non-empty string");
     }
 
@@ -175,6 +213,7 @@ export function createSelloService(input?: SelloServiceInput): SelloReceipts {
         resolved.fallbackSelloLogs,
         resolved.log.logUrl,
       );
+      const resolvedActionType = resolveActionType(actionType, request);
       const base = {
         authorizationTokenBytes: verifiedToken.authorizationTokenBytes,
         ownerHpkePublicKey: verifiedToken.ownerHpkePublicKey,
@@ -183,7 +222,7 @@ export function createSelloService(input?: SelloServiceInput): SelloReceipts {
         servicePrivateKey: resolved.servicePrivateKey,
         serviceIdentifier: resolved.service,
         logUrl: resolved.log.logUrl,
-        actionType,
+        actionType: resolvedActionType,
         actionInputBytes: (options.canonicalizeInput ?? canonicalJsonBytes)(request),
         timestamp: resolved.now(),
       };
@@ -270,6 +309,32 @@ export function createSelloService(input?: SelloServiceInput): SelloReceipts {
 
       return async (args: Args, context: Context): Promise<Response> => {
         return await wrapped({ name, arguments: args, context });
+      };
+    },
+    a2aMessage<Request, Response, Context = unknown>(
+      handler: SelloA2aMessageHandler<Request, Response, Context>,
+      options: SelloA2aMessageOptions<Request, Response, Context> = {},
+    ): SelloA2aMessageHandler<Request, Response, Context> {
+      const wrapped = wrapTool<
+        SelloA2aMessageInvocation<Request, Context>,
+        Response
+      >(
+        options.actionType ?? defaultA2aActionType,
+        async (invocation) => handler(invocation.request, invocation.context),
+        {
+          authorizationToken:
+            options.authorizationToken ?? defaultA2aAuthorizationToken,
+          canonicalizeInput:
+            options.canonicalizeInput ?? defaultA2aCanonicalizeInput,
+          canonicalizeOutput: options.canonicalizeOutput,
+          canonicalizeError: options.canonicalizeError,
+          isDenied: options.isDenied,
+          deniedResponse: options.deniedResponse,
+        },
+      );
+
+      return async (request: Request, context: Context): Promise<Response> => {
+        return await wrapped({ request, context });
       };
     },
     async flush(): Promise<void> {
@@ -588,6 +653,53 @@ function defaultMcpCanonicalizeInput(
   });
 }
 
+function defaultA2aAuthorizationToken(
+  invocation: SelloA2aMessageInvocation<unknown, unknown>,
+): string | Uint8Array {
+  const fromContext = authorizationTokenFromUnknown(invocation.context);
+  if (fromContext) {
+    return fromContext;
+  }
+
+  const fromRequest = authorizationTokenFromUnknown(invocation.request);
+  if (fromRequest) {
+    return fromRequest;
+  }
+
+  throw new TypeError(
+    "Sello A2A authorization token not found. Pass authorizationToken or include an Authorization header in the A2A context.",
+  );
+}
+
+function defaultA2aActionType(
+  invocation: SelloA2aMessageInvocation<unknown, unknown>,
+): string {
+  const method = methodFromA2aRequest(invocation.request);
+  return method ? `a2a.${method}` : "a2a.message/send";
+}
+
+function defaultA2aCanonicalizeInput(
+  invocation: SelloA2aMessageInvocation<unknown, unknown>,
+): Uint8Array {
+  if (isRecord(invocation.request) && typeof invocation.request.method === "string") {
+    return canonicalJsonBytes({
+      method: invocation.request.method,
+      params: invocation.request.params ?? null,
+    });
+  }
+
+  return canonicalJsonBytes(invocation.request);
+}
+
+function methodFromA2aRequest(request: unknown): string | undefined {
+  if (!isRecord(request)) {
+    return undefined;
+  }
+
+  const method = request.method;
+  return typeof method === "string" && method.length > 0 ? method : undefined;
+}
+
 function authorizationTokenFromUnknown(value: unknown): string | Uint8Array | undefined {
   if (!isRecord(value)) {
     return undefined;
@@ -691,6 +803,20 @@ function resolveValue<Request, Value>(
   }
 
   return value;
+}
+
+function resolveActionType<Request>(
+  actionType: SelloActionType<Request>,
+  request: Request,
+): string {
+  const resolved =
+    typeof actionType === "function" ? actionType(request) : actionType;
+
+  if (typeof resolved !== "string" || resolved.length === 0) {
+    throw new TypeError("Sello action type must be a non-empty string");
+  }
+
+  return resolved;
 }
 
 function envSubmitMode(env: Environment): SubmitMode | SelloSubmitOptions | undefined {

@@ -31,10 +31,12 @@
     "bench": "node --experimental-strip-types sdks/typescript/src/cli/bench.ts",
     "demo": "node --experimental-strip-types sdks/typescript/src/cli/demo.ts",
     "dev": "node --experimental-strip-types sdks/typescript/src/cli/sello.ts dev",
+    "example:a2a:minimal": "node --test --experimental-strip-types sdks/typescript/test/examples/a2a-minimal-server.test.ts",
     "example:mcp:minimal": "node --test --experimental-strip-types sdks/typescript/test/examples/mcp-minimal-server.test.ts",
     "example:mcp": "node --experimental-strip-types sdks/typescript/examples/mcp-tool-server.ts",
     "example:tool": "node --experimental-strip-types sdks/typescript/examples/quickstart-tool.ts",
     "build": "node --disable-warning=ExperimentalWarning sdks/typescript/scripts/build-dist.mjs",
+    "package:a2a-test": "node sdks/typescript/scripts/package-a2a-smoke.mjs",
     "package:mcp-test": "node sdks/typescript/scripts/package-mcp-smoke.mjs",
     "package:test": "node sdks/typescript/scripts/package-smoke.mjs",
     "pack:check": "node sdks/typescript/scripts/pack-check.mjs",
@@ -50,7 +52,8 @@
     "transparency-log",
     "cose",
     "hpke",
-    "mcp"
+    "mcp",
+    "a2a"
   ],
   "publishConfig": {
     "access": "public"

@@ -128,6 +128,28 @@ receipts.mcpTool("calendar.create_event", handler, {
 
 For the complete MCP placement notes, see [MCP Integration](mcp.md).
 
+For an A2A agent, wrap the message handler you already expose:
+
+```ts
+import { sello } from "sello";
+
+const receipts = sello.service();
+
+export const sendMessage = receipts.a2aMessage(async (request, context) => {
+  return agent.handleMessage(request, context);
+});
+```
+
+`receipts.a2aMessage(...)` uses action type `a2a.<method>`, for example `a2a.message/send`, and hashes only the A2A JSON-RPC method and params. It excludes request ids, headers, bearer tokens, and runtime context. If your transport stores the token somewhere else, pass an extractor:
+
+```ts
+receipts.a2aMessage(handler, {
+  authorizationToken: ({ context }) => context.session.token,
+});
+```
+
+For the complete A2A placement notes, see [A2A Integration](a2a.md).
+
 Or run the matching Python example:
 
 ```bash
