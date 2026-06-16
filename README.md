@@ -16,6 +16,7 @@
 <p align="center">
   <a href="#try-it">Quickstart</a> &middot;
   <a href="#add-sello-to-a-tool">Add Sello</a> &middot;
+  <a href="#add-sello-to-an-mcp-server">MCP</a> &middot;
   <a href="sdks/README.md">SDKs</a> &middot;
   <a href="#see-logged-actions">Actions</a> &middot;
   <a href="#how-it-works">How It Works</a> &middot;
@@ -116,6 +117,39 @@ npx --yes sello init-demo
 npx --yes sello init-http-demo
 ```
 
+## Add Sello to an MCP Server
+
+If your service exposes MCP tools, wrap the tool callback:
+
+```ts
+import { sello } from "sello";
+
+const receipts = sello.service();
+
+server.registerTool(
+  "calendar.create_event",
+  { inputSchema: createEventInputSchema },
+  receipts.mcpTool("calendar.create_event", async (args) => {
+    const event = await calendar.events.create(args);
+    return {
+      content: [{ type: "text", text: event.id }],
+    };
+  }),
+);
+```
+
+Some MCP SDK versions call this method `tool` instead of `registerTool`; use the same callback slot either way.
+
+`mcpTool` verifies the agent token before your callback runs, preserves the callback's return value, rethrows callback errors, and emits a receipt with action type `mcp.tools/call.<tool-name>`.
+
+By default, Sello looks for an `Authorization: Bearer ...` token in common MCP context/header fields. If your transport stores tokens somewhere else, pass an extractor:
+
+```ts
+receipts.mcpTool("calendar.create_event", handler, {
+  authorizationToken: ({ context }) => context.session.token,
+});
+```
+
 ## See Logged Actions
 
 ```bash
@@ -155,7 +189,7 @@ Sello does not prove that the agent called every service it should have called, 
 - [Protocol Walkthrough](docs/protocol-walkthrough.md): the primitive receipt loop for implementers.
 - [SPEC.md](SPEC.md): the Sello protocol draft.
 - [Notarized Agents paper](https://arxiv.org/abs/2606.04193): design rationale, threat model, and prior art.
-- [sdks/typescript/examples/mcp-minimal-server.ts](sdks/typescript/examples/mcp-minimal-server.ts): a small MCP-shaped integration.
+- [sdks/typescript/examples/mcp-minimal-server.ts](sdks/typescript/examples/mcp-minimal-server.ts): a small MCP integration.
 - [docs/security-review.md](docs/security-review.md) and [docs/sdk-security-audit.md](docs/sdk-security-audit.md): current review notes.
 
 The TypeScript SDK is published on [npm](https://www.npmjs.com/package/sello) and lives in [`sdks/typescript/`](sdks/typescript/). The Python SDK is published on [PyPI](https://pypi.org/project/sello/) and lives in [`sdks/python/`](sdks/python/). Both SDKs support the same service-side `sello.service()` flow; Python uses the `@receipts.tool(...)` decorator. Live Rekor proof verification and production identity operations are still future work.

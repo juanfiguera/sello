@@ -97,6 +97,35 @@ node --run example:tool
 node --run actions
 ```
 
+For an MCP tool, wrap the callback you already register:
+
+```ts
+import { sello } from "sello";
+
+const receipts = sello.service();
+
+server.registerTool(
+  "calendar.create_event",
+  { inputSchema: createEventInputSchema },
+  receipts.mcpTool("calendar.create_event", async (args) => {
+    const event = await calendar.events.create(args);
+    return {
+      content: [{ type: "text", text: event.id }],
+    };
+  }),
+);
+```
+
+Some MCP SDK versions call this method `tool` instead of `registerTool`; use the same callback slot either way.
+
+`receipts.mcpTool(...)` uses action type `mcp.tools/call.<tool-name>` and hashes only the MCP method name, tool name, and arguments. It tries common MCP context/header locations for the bearer token. If your transport puts the token somewhere else, pass an extractor:
+
+```ts
+receipts.mcpTool("calendar.create_event", handler, {
+  authorizationToken: ({ context }) => context.session.token,
+});
+```
+
 Or run the matching Python example:
 
 ```bash

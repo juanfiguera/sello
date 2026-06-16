@@ -1,8 +1,4 @@
-import {
-  canonicalJsonBytes,
-  sello,
-  type SelloReceipts,
-} from "../src/index.ts";
+import { sello, type SelloReceipts } from "../src/index.ts";
 
 export type MinimalMcpRequest = {
   headers: {
@@ -35,10 +31,13 @@ export type MinimalMcpResponse = {
 export function createCalendarMcpServer(
   receipts: SelloReceipts = sello.service(),
 ) {
-  const createEvent = receipts.tool<MinimalMcpRequest, MinimalMcpResponse>(
-    "mcp.tools/call.calendar.create_event",
-    async (request) => {
-      const args = request.body.params.arguments;
+  const createEvent = receipts.mcpTool<
+    MinimalMcpRequest["body"]["params"]["arguments"],
+    MinimalMcpResponse,
+    MinimalMcpRequest
+  >(
+    "calendar.create_event",
+    async (args, request) => {
       const title = readString(args.title, "title");
 
       return {
@@ -53,13 +52,6 @@ export function createCalendarMcpServer(
           ],
         },
       };
-    },
-    {
-      canonicalizeInput: (request) => canonicalJsonBytes({
-        method: request.body.method,
-        params: request.body.params,
-      }),
-      canonicalizeOutput: (response) => canonicalJsonBytes(response),
     },
   );
 
@@ -79,7 +71,7 @@ export function createCalendarMcpServer(
         };
       }
 
-      return await createEvent(request);
+      return await createEvent(request.body.params.arguments, request);
     },
 
     flush: () => receipts.flush(),

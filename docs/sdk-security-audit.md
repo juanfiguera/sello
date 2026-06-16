@@ -29,6 +29,7 @@ These notes cover the first Stripe-style SDK implementation pass. They are writt
 - Invalid tokens prevent the handler from running and emit no receipt.
 - Success, error, and denied paths emit receipts without including plaintext request or response bodies.
 - The wrapper uses the configured service identity and key for every receipt.
+- `receipts.mcpTool(...)` reuses the same wrapper path. It defaults to hashing the MCP `tools/call` method, tool name, and arguments, while excluding bearer tokens and transport context from the action input hash.
 
 ## Phase 4: Logs And Action Viewing
 

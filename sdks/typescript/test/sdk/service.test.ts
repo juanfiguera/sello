@@ -159,6 +159,101 @@ describe("Stripe-style Sello SDK service wrapper", () => {
     assert.equal(verified.receipts[0].receipt["action-type"], "custom.action");
   });
 
+  it("wraps an MCP tool handler and emits a tools/call receipt", async () => {
+    const fixture = makeFixture();
+    const receipts = sello.service({
+      ...fixture.serviceConfig(),
+      submit: { mode: "await" },
+    });
+    const wrapped = receipts.mcpTool<
+      { title: string },
+      ToolResponse,
+      { requestInfo: { headers: { authorization: string } } }
+    >(
+      "calendar.create_event",
+      async (args, context) => ({
+        ok: context.requestInfo.headers.authorization.startsWith("Bearer "),
+        id: args.title,
+      }),
+    );
+
+    const response = await wrapped(
+      { title: "launch" },
+      { requestInfo: { headers: { authorization: `Bearer ${fixture.authorizationToken}` } } },
+    );
+    const verified = verifyReceipts(fixture.ownerInput());
+
+    assert.deepEqual(response, { ok: true, id: "launch" });
+    assert.equal(verified.rejected.length, 0);
+    assert.equal(verified.receipts.length, 1);
+    assert.equal(
+      verified.receipts[0].receipt["action-type"],
+      "mcp.tools/call.calendar.create_event",
+    );
+    assert.equal(verified.receipts[0].receipt["result-status"], "success");
+  });
+
+  it("extracts MCP bearer tokens from Headers-like contexts", async () => {
+    const fixture = makeFixture();
+    const receipts = sello.service({
+      ...fixture.serviceConfig(),
+      submit: { mode: "await" },
+    });
+    const wrapped = receipts.mcpTool<
+      { title: string },
+      ToolResponse,
+      { requestInfo: { headers: Headers } }
+    >(
+      "calendar.create_event",
+      async (args) => ({ ok: true, id: args.title }),
+    );
+
+    await wrapped(
+      { title: "launch" },
+      {
+        requestInfo: {
+          headers: new Headers({
+            authorization: `Bearer ${fixture.authorizationToken}`,
+          }),
+        },
+      },
+    );
+    const verified = verifyReceipts(fixture.ownerInput());
+
+    assert.equal(verified.rejected.length, 0);
+    assert.equal(verified.receipts.length, 1);
+    assert.equal(
+      verified.receipts[0].receipt["action-type"],
+      "mcp.tools/call.calendar.create_event",
+    );
+  });
+
+  it("supports custom MCP token extraction and action type", async () => {
+    const fixture = makeFixture();
+    const receipts = sello.service({
+      ...fixture.serviceConfig(),
+      submit: { mode: "await" },
+    });
+    const wrapped = receipts.mcpTool<
+      { title: string },
+      ToolResponse,
+      { token: string }
+    >(
+      "calendar.create_event",
+      async (args) => ({ ok: true, id: args.title }),
+      {
+        actionType: "custom.mcp.calendar",
+        authorizationToken: (invocation) => invocation.context.token,
+      },
+    );
+
+    await wrapped({ title: "launch" }, { token: fixture.authorizationToken });
+    const verified = verifyReceipts(fixture.ownerInput());
+
+    assert.equal(verified.rejected.length, 0);
+    assert.equal(verified.receipts[0].receipt["action-type"], "custom.mcp.calendar");
+  });
+
   it("background submission returns before a slow append completes", async () => {
     const fixture = makeFixture();
     let resolveAppend: (() => void) | undefined;

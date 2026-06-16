@@ -42,6 +42,36 @@ export type SelloToolOptions<Request, Response> = {
   deniedResponse?: (request: Request) => Response | Promise<Response>;
 };
 
+export type SelloMcpToolInvocation<Args, Context = unknown> = {
+  name: string;
+  arguments: Args;
+  context: Context;
+};
+
+export type SelloMcpToolHandler<Args, Response, Context = unknown> = (
+  args: Args,
+  context: Context,
+) => Response | Promise<Response>;
+
+export type SelloMcpToolOptions<Args, Response, Context = unknown> = {
+  actionType?: string;
+  authorizationToken?: SelloValueOrGetter<
+    SelloMcpToolInvocation<Args, Context>,
+    string | Uint8Array
+  >;
+  canonicalizeInput?: (
+    invocation: SelloMcpToolInvocation<Args, Context>,
+  ) => Uint8Array;
+  canonicalizeOutput?: (response: Response) => Uint8Array;
+  canonicalizeError?: (error: unknown) => Uint8Array;
+  isDenied?: (
+    invocation: SelloMcpToolInvocation<Args, Context>,
+  ) => boolean | Promise<boolean>;
+  deniedResponse?: (
+    invocation: SelloMcpToolInvocation<Args, Context>,
+  ) => Response | Promise<Response>;
+};
+
 export type SelloServiceConfig = {
   service?: string;
   serviceKey?: ServiceKeyInput;
@@ -66,6 +96,11 @@ export type SelloReceipts = {
     handler: SelloToolHandler<Request, Response>,
     options?: SelloToolOptions<Request, Response>,
   ): SelloToolHandler<Request, Response>;
+  mcpTool<Args, Response, Context = unknown>(
+    name: string,
+    handler: SelloMcpToolHandler<Args, Response, Context>,
+    options?: SelloMcpToolOptions<Args, Response, Context>,
+  ): SelloMcpToolHandler<Args, Response, Context>;
   flush(): Promise<void>;
 };
 
@@ -115,90 +150,126 @@ export function createSelloService(input?: SelloServiceInput): SelloReceipts {
     return publisher;
   }
 
+  function wrapTool<Request, Response>(
+    actionType: string,
+    handler: SelloToolHandler<Request, Response>,
+    options: SelloToolOptions<Request, Response> = {},
+  ): SelloToolHandler<Request, Response> {
+    if (typeof actionType !== "string" || actionType.length === 0) {
+      throw new TypeError("Sello action type must be a non-empty string");
+    }
+
+    return async (request: Request): Promise<Response> => {
+      const resolved = await config();
+      const authorizationToken = resolveValue(
+        options.authorizationToken ?? defaultAuthorizationToken,
+        request,
+      );
+      const tokenIssuerPublicKey = await resolveTokenIssuerPublicKey(resolved.tokenIssuer);
+      const verifiedToken = verifySelloJwsToken({
+        authorizationToken,
+        issuerPublicKey: tokenIssuerPublicKey,
+      });
+      const selloLogs = selectSelloLogs(
+        verifiedToken.selloLogs,
+        resolved.fallbackSelloLogs,
+        resolved.log.logUrl,
+      );
+      const base = {
+        authorizationTokenBytes: verifiedToken.authorizationTokenBytes,
+        ownerHpkePublicKey: verifiedToken.ownerHpkePublicKey,
+        selloLogs,
+        serviceKid: resolved.serviceKid,
+        servicePrivateKey: resolved.servicePrivateKey,
+        serviceIdentifier: resolved.service,
+        logUrl: resolved.log.logUrl,
+        actionType,
+        actionInputBytes: (options.canonicalizeInput ?? canonicalJsonBytes)(request),
+        timestamp: resolved.now(),
+      };
+
+      if (options.isDenied && (await options.isDenied(request))) {
+        const response = options.deniedResponse
+          ? await options.deniedResponse(request)
+          : undefined;
+        const receipt = emitReceipt({
+          ...base,
+          actionOutputBytes: new Uint8Array(),
+          resultStatus: "denied",
+        });
+        resolved.onReceipt?.({ resultStatus: "denied", receipt, response });
+        await submit(resolved, receipt, base.timestamp);
+
+        if (options.deniedResponse) {
+          return response as Response;
+        }
+
+        throw new SelloDeniedError(receipt);
+      }
+
+      let response: Response;
+      try {
+        response = await handler(request);
+      } catch (error) {
+        const receipt = emitReceipt({
+          ...base,
+          actionOutputBytes: (options.canonicalizeError ?? canonicalErrorBytes)(
+            error,
+          ),
+          resultStatus: "error",
+        });
+        resolved.onReceipt?.({ resultStatus: "error", receipt, error });
+        await submit(resolved, receipt, base.timestamp);
+        throw error;
+      }
+
+      const receipt = emitReceipt({
+        ...base,
+        actionOutputBytes: (options.canonicalizeOutput ?? canonicalJsonBytes)(
+          response,
+        ),
+        resultStatus: "success",
+      });
+      resolved.onReceipt?.({ resultStatus: "success", receipt, response });
+      await submit(resolved, receipt, base.timestamp);
+      return response;
+    };
+  }
+
   return {
     tool<Request, Response>(
       actionType: string,
       handler: SelloToolHandler<Request, Response>,
       options: SelloToolOptions<Request, Response> = {},
     ): SelloToolHandler<Request, Response> {
-      if (typeof actionType !== "string" || actionType.length === 0) {
-        throw new TypeError("Sello action type must be a non-empty string");
+      return wrapTool(actionType, handler, options);
+    },
+    mcpTool<Args, Response, Context = unknown>(
+      name: string,
+      handler: SelloMcpToolHandler<Args, Response, Context>,
+      options: SelloMcpToolOptions<Args, Response, Context> = {},
+    ): SelloMcpToolHandler<Args, Response, Context> {
+      if (typeof name !== "string" || name.length === 0) {
+        throw new TypeError("MCP tool name must be a non-empty string");
       }
 
-      return async (request: Request): Promise<Response> => {
-        const resolved = await config();
-        const authorizationToken = resolveValue(
-          options.authorizationToken ?? defaultAuthorizationToken,
-          request,
-        );
-        const tokenIssuerPublicKey = await resolveTokenIssuerPublicKey(resolved.tokenIssuer);
-        const verifiedToken = verifySelloJwsToken({
-          authorizationToken,
-          issuerPublicKey: tokenIssuerPublicKey,
-        });
-        const selloLogs = selectSelloLogs(
-          verifiedToken.selloLogs,
-          resolved.fallbackSelloLogs,
-          resolved.log.logUrl,
-        );
-        const base = {
-          authorizationTokenBytes: verifiedToken.authorizationTokenBytes,
-          ownerHpkePublicKey: verifiedToken.ownerHpkePublicKey,
-          selloLogs,
-          serviceKid: resolved.serviceKid,
-          servicePrivateKey: resolved.servicePrivateKey,
-          serviceIdentifier: resolved.service,
-          logUrl: resolved.log.logUrl,
-          actionType,
-          actionInputBytes: (options.canonicalizeInput ?? canonicalJsonBytes)(request),
-          timestamp: resolved.now(),
-        };
+      const wrapped = wrapTool<SelloMcpToolInvocation<Args, Context>, Response>(
+        options.actionType ?? `mcp.tools/call.${name}`,
+        async (invocation) => handler(invocation.arguments, invocation.context),
+        {
+          authorizationToken:
+            options.authorizationToken ?? defaultMcpAuthorizationToken,
+          canonicalizeInput:
+            options.canonicalizeInput ?? defaultMcpCanonicalizeInput,
+          canonicalizeOutput: options.canonicalizeOutput,
+          canonicalizeError: options.canonicalizeError,
+          isDenied: options.isDenied,
+          deniedResponse: options.deniedResponse,
+        },
+      );
 
-        if (options.isDenied && (await options.isDenied(request))) {
-          const response = options.deniedResponse
-            ? await options.deniedResponse(request)
-            : undefined;
-          const receipt = emitReceipt({
-            ...base,
-            actionOutputBytes: new Uint8Array(),
-            resultStatus: "denied",
-          });
-          resolved.onReceipt?.({ resultStatus: "denied", receipt, response });
-          await submit(resolved, receipt, base.timestamp);
-
-          if (options.deniedResponse) {
-            return response as Response;
-          }
-
-          throw new SelloDeniedError(receipt);
-        }
-
-        let response: Response;
-        try {
-          response = await handler(request);
-        } catch (error) {
-          const receipt = emitReceipt({
-            ...base,
-            actionOutputBytes: (options.canonicalizeError ?? canonicalErrorBytes)(
-              error,
-            ),
-            resultStatus: "error",
-          });
-          resolved.onReceipt?.({ resultStatus: "error", receipt, error });
-          await submit(resolved, receipt, base.timestamp);
-          throw error;
-        }
-
-        const receipt = emitReceipt({
-          ...base,
-          actionOutputBytes: (options.canonicalizeOutput ?? canonicalJsonBytes)(
-            response,
-          ),
-          resultStatus: "success",
-        });
-        resolved.onReceipt?.({ resultStatus: "success", receipt, response });
-        await submit(resolved, receipt, base.timestamp);
-        return response;
+      return async (args: Args, context: Context): Promise<Response> => {
+        return await wrapped({ name, arguments: args, context });
       };
     },
     async flush(): Promise<void> {
@@ -482,23 +553,113 @@ function selectSelloLogs(
 }
 
 function defaultAuthorizationToken(request: unknown): string | Uint8Array {
-  if (isRecord(request)) {
-    const direct = request.authorizationToken ?? request.authorization;
-    if (typeof direct === "string" || direct instanceof Uint8Array) {
-      return stripBearer(direct);
-    }
-
-    const headers = request.headers;
-    if (isRecord(headers)) {
-      const header = headers.authorization ?? headers.Authorization;
-      if (typeof header === "string") {
-        return stripBearer(header);
-      }
-    }
+  const token = authorizationTokenFromUnknown(request);
+  if (token) {
+    return token;
   }
 
   throw new TypeError(
     "Sello authorization token not found. Pass authorizationToken or include request.authorizationToken.",
+  );
+}
+
+function defaultMcpAuthorizationToken(
+  invocation: SelloMcpToolInvocation<unknown, unknown>,
+): string | Uint8Array {
+  const fromContext = authorizationTokenFromUnknown(invocation.context);
+  if (fromContext) {
+    return fromContext;
+  }
+
+  throw new TypeError(
+    "Sello MCP authorization token not found. Pass authorizationToken or include an Authorization header in the MCP context.",
+  );
+}
+
+function defaultMcpCanonicalizeInput(
+  invocation: SelloMcpToolInvocation<unknown, unknown>,
+): Uint8Array {
+  return canonicalJsonBytes({
+    method: "tools/call",
+    params: {
+      name: invocation.name,
+      arguments: invocation.arguments,
+    },
+  });
+}
+
+function authorizationTokenFromUnknown(value: unknown): string | Uint8Array | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  const direct = value.authorizationToken ?? value.authorization;
+  if (typeof direct === "string" || direct instanceof Uint8Array) {
+    return stripBearer(direct);
+  }
+
+  const headers = value.headers;
+  const fromHeaders = authorizationTokenFromHeaders(headers);
+  if (fromHeaders) {
+    return fromHeaders;
+  }
+
+  const requestInfo = value.requestInfo;
+  if (isRecord(requestInfo)) {
+    const fromRequestInfo = authorizationTokenFromHeaders(requestInfo.headers);
+    if (fromRequestInfo) {
+      return fromRequestInfo;
+    }
+  }
+
+  const request = value.request;
+  if (isRecord(request)) {
+    const fromRequest = authorizationTokenFromHeaders(request.headers);
+    if (fromRequest) {
+      return fromRequest;
+    }
+  }
+
+  const authInfo = value.authInfo;
+  if (isRecord(authInfo)) {
+    const token = authInfo.token ?? authInfo.accessToken ?? authInfo.access_token;
+    if (typeof token === "string" || token instanceof Uint8Array) {
+      return stripBearer(token);
+    }
+  }
+
+  return undefined;
+}
+
+function authorizationTokenFromHeaders(
+  headers: unknown,
+): string | Uint8Array | undefined {
+  if (isHeadersLike(headers)) {
+    const header = headers.get("authorization") ?? headers.get("Authorization");
+    if (typeof header === "string") {
+      return stripBearer(header);
+    }
+  }
+
+  if (!isRecord(headers)) {
+    return undefined;
+  }
+
+  const header = headers.authorization ?? headers.Authorization;
+  if (typeof header === "string" || header instanceof Uint8Array) {
+    return stripBearer(header);
+  }
+
+  return undefined;
+}
+
+function isHeadersLike(
+  value: unknown,
+): value is { get(name: string): string | null } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as { get?: unknown }).get === "function"
   );
 }
 

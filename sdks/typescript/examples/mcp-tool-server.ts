@@ -3,7 +3,6 @@
 import { pathToFileURL } from "node:url";
 
 import {
-  canonicalJsonBytes,
   sello,
   type SdkSubmissionLog,
   type SelloReceipts,
@@ -76,7 +75,10 @@ export type McpToolServerExampleOptions = {
 export function createSelloMcpToolServer(receipts: SelloReceipts): SelloMcpToolServer {
   const tools = new Map<
     string,
-    (request: McpHttpToolCall) => Promise<McpHttpToolResponse>
+    (
+      args: Record<string, unknown>,
+      request: McpHttpToolCall,
+    ) => Promise<McpHttpToolResponse>
   >();
 
   return {
@@ -88,23 +90,20 @@ export function createSelloMcpToolServer(receipts: SelloReceipts): SelloMcpToolS
         throw new TypeError(`MCP tool ${name} is already registered`);
       }
 
-      const wrapped = receipts.tool<McpHttpToolCall, McpHttpToolResponse>(
-        `mcp.tools/call.${name}`,
-        async (request) => ({
+      const wrapped = receipts.mcpTool<
+        Record<string, unknown>,
+        McpHttpToolResponse,
+        McpHttpToolCall
+      >(
+        name,
+        async (args, request) => ({
           status: 200,
           body: {
             jsonrpc: "2.0",
             id: request.body.id,
-            result: await handler(request.body.params.arguments),
+            result: await handler(args),
           },
         }),
-        {
-          canonicalizeInput: (request) => canonicalJsonBytes({
-            method: request.body.method,
-            params: request.body.params,
-          }),
-          canonicalizeOutput: (response) => canonicalJsonBytes(response.body),
-        },
       );
 
       tools.set(name, wrapped);
@@ -120,7 +119,7 @@ export function createSelloMcpToolServer(receipts: SelloReceipts): SelloMcpToolS
         return jsonRpcError(request.body.id, -32601, "tool not found");
       }
 
-      return await tool(request);
+      return await tool(request.body.params.arguments, request);
     },
   };
 }
