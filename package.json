@@ -35,6 +35,7 @@
     "example:mcp": "node --experimental-strip-types sdks/typescript/examples/mcp-tool-server.ts",
     "example:tool": "node --experimental-strip-types sdks/typescript/examples/quickstart-tool.ts",
     "build": "node --disable-warning=ExperimentalWarning sdks/typescript/scripts/build-dist.mjs",
+    "package:mcp-test": "node sdks/typescript/scripts/package-mcp-smoke.mjs",
     "package:test": "node sdks/typescript/scripts/package-smoke.mjs",
     "pack:check": "node sdks/typescript/scripts/pack-check.mjs",
     "prepack": "node --disable-warning=ExperimentalWarning sdks/typescript/scripts/build-dist.mjs",
