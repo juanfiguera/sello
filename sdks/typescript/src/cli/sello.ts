@@ -200,6 +200,29 @@ async function devCommand(args: string[]): Promise<void> {
     console.log(`Local dev log: ${logPath}`);
     console.log(`Loaded ${devLogEntryCountLabel(loadedEntries)}.`);
   });
+  server.on("error", (error) => {
+    if (isPortInUse(error)) {
+      console.error(`sello: port ${port} is already in use.`);
+      console.error("");
+      console.error("Try:");
+      console.error(`  sello dev --port ${port + 1}`);
+      console.error("");
+      console.error("Or stop the process using that port:");
+      console.error(`  lsof -nP -iTCP:${port} -sTCP:LISTEN`);
+      process.exitCode = 1;
+      return;
+    }
+
+    if (isListenError(error)) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`sello: could not start dev server on port ${port}.`);
+      console.error(message);
+      process.exitCode = 1;
+      return;
+    }
+
+    throw error;
+  });
 }
 
 async function emitDemoCommand(args: string[]): Promise<void> {
@@ -258,14 +281,7 @@ async function callHttpDemoCommand(args: string[]): Promise<void> {
   );
   const url = readFlag(args, "--url") ?? "http://localhost:8790/calendar/events";
   const title = readFlag(args, "--title") ?? "Ship Sello";
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${state.agentToken}`,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({ title }),
-  });
+  const response = await fetchHttpDemo(url, state.agentToken, title);
   const responseText = await response.text();
 
   if (!response.ok) {
@@ -282,6 +298,31 @@ async function callHttpDemoCommand(args: string[]): Promise<void> {
   console.log("");
   console.log("Or open:");
   console.log(`  ${actionViewerUrl(state)}`);
+}
+
+async function fetchHttpDemo(
+  url: string,
+  agentToken: string,
+  title: string,
+): Promise<Response> {
+  try {
+    return await fetch(url, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${agentToken}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ title }),
+    });
+  } catch (error) {
+    if (isFetchFailed(error)) {
+      throw new TypeError(
+        `could not reach the HTTP demo route at ${url}.\n\nStart it in another terminal:\n  node sello-http-route.mjs`,
+      );
+    }
+
+    throw error;
+  }
 }
 
 function initDemoCommand(args: string[]): void {
@@ -786,6 +827,22 @@ function escapeHtml(value: string): string {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isPortInUse(error: unknown): boolean {
+  return (
+    isRecord(error) &&
+    error.code === "EADDRINUSE" &&
+    error.syscall === "listen"
+  );
+}
+
+function isListenError(error: unknown): boolean {
+  return isRecord(error) && error.syscall === "listen";
+}
+
+function isFetchFailed(error: unknown): boolean {
+  return error instanceof TypeError && error.message === "fetch failed";
 }
 
 function printHelp(): void {

@@ -115,6 +115,43 @@ describe("sello CLI", () => {
     assert.equal(secondState.agentToken, firstState.agentToken);
   });
 
+  it("prints a friendly message when the dev port is already in use", async (context) => {
+    const cwd = makeTempCwd();
+    const port = await freePort();
+    if (port === undefined) {
+      context.skip("localhost listeners are unavailable in this sandbox");
+      return;
+    }
+
+    const server = createServer();
+    try {
+      await listen(server, port);
+    } catch (error) {
+      if (isListenUnavailable(error)) {
+        context.skip("localhost listeners are unavailable in this sandbox");
+        return;
+      }
+
+      throw error;
+    }
+
+    try {
+      const result = await runSelloAsync([
+        "dev",
+        "--port",
+        String(port),
+      ], { cwd });
+
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, new RegExp(`port ${port} is already in use`));
+      assert.match(result.stderr, new RegExp(`sello dev --port ${port + 1}`));
+      assert.match(result.stderr, new RegExp(`lsof -nP -iTCP:${port}`));
+      assert.doesNotMatch(result.stderr, /Unhandled 'error' event/);
+    } finally {
+      await close(server);
+    }
+  });
+
   it("scaffolds a demo receipt emitter", () => {
     const cwd = makeTempCwd();
     const result = runSello(["init-demo"], { cwd });
@@ -189,6 +226,32 @@ describe("sello CLI", () => {
 
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /Run `sello dev` first/);
+  });
+
+  it("explains how to start the HTTP route demo when the route is unreachable", async (context) => {
+    const cwd = makeTempCwd();
+    const port = await freePort();
+    if (port === undefined) {
+      context.skip("localhost listeners are unavailable in this sandbox");
+      return;
+    }
+
+    const stateResult = runSello(["dev", "--dry-run"], { cwd });
+    assert.equal(stateResult.status, 0, stateResult.stderr);
+
+    const result = await runSelloAsync([
+      "call-http-demo",
+      "--url",
+      `http://127.0.0.1:${port}/calendar/events`,
+    ], { cwd });
+
+    assert.notEqual(result.status, 0);
+    assert.match(
+      result.stderr,
+      new RegExp(`could not reach the HTTP demo route at http://127\\.0\\.0\\.1:${port}/calendar/events`),
+    );
+    assert.match(result.stderr, /node sello-http-route\.mjs/);
+    assert.doesNotMatch(result.stderr, /^sello: fetch failed/m);
   });
 
   it("calls the HTTP route demo with the local dev token", async (context) => {
