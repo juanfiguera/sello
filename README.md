@@ -18,14 +18,8 @@
   <a href="#add-sello-to-a-tool">Add Sello</a> &middot;
   <a href="docs/mcp.md">MCP</a> &middot;
   <a href="sdks/README.md">SDKs</a> &middot;
-  <a href="#see-logged-actions">Actions</a> &middot;
-  <a href="#how-it-works">How It Works</a> &middot;
-  <a href="#learn-more">Learn More</a> &middot;
   <a href="SPEC.md">Protocol</a> &middot;
-  <a href="https://arxiv.org/abs/2606.04193">Paper</a> &middot;
-  <a href="SECURITY.md">Security</a> &middot;
-  <a href="CONTRIBUTING.md">Contributing</a> &middot;
-  <a href="#license">License</a>
+  <a href="https://arxiv.org/abs/2606.04193">Paper</a>
 </p>
 
 Sello is a protocol for independently-verifiable records of AI agent actions.
