@@ -97,6 +97,12 @@ try {
     case "init-http-demo":
       initHttpDemoCommand(process.argv.slice(3));
       break;
+    case "init-mcp-demo":
+      initMcpDemoCommand(process.argv.slice(3));
+      break;
+    case "init-a2a-demo":
+      initA2aDemoCommand(process.argv.slice(3));
+      break;
     case "keys":
       keysCommand(process.argv.slice(3));
       break;
@@ -338,13 +344,13 @@ function initDemoCommand(args: string[]): void {
   console.log(`Created ${output}`);
   console.log("");
   console.log("Terminal 1: keep the local dev log running");
-  console.log("  npx sello dev");
+  console.log(`  ${devCommandHint()}`);
   console.log("");
   console.log("Terminal 2: emit and view a receipt");
   console.log(`  node ${output}`);
   console.log("  npx sello actions");
   console.log("");
-  console.log("Then open http://localhost:8787/actions");
+  console.log(`Then open ${actionViewerUrlHint()}`);
 }
 
 function initHttpDemoCommand(args: string[]): void {
@@ -360,7 +366,7 @@ function initHttpDemoCommand(args: string[]): void {
   console.log(`Created ${output}`);
   console.log("");
   console.log("Terminal 1: keep the local dev log running");
-  console.log("  npx sello dev");
+  console.log(`  ${devCommandHint()}`);
   console.log("");
   console.log("Terminal 2: start the route");
   console.log(`  node ${output}`);
@@ -369,7 +375,51 @@ function initHttpDemoCommand(args: string[]): void {
   console.log("  npx sello call-http-demo");
   console.log("  npx sello actions");
   console.log("");
-  console.log("Then open http://localhost:8787/actions");
+  console.log(`Then open ${actionViewerUrlHint()}`);
+}
+
+function initMcpDemoCommand(args: string[]): void {
+  const output = readFlag(args, "--output") ?? "sello-mcp-demo.mjs";
+  const force = args.includes("--force");
+
+  if (existsSync(output) && !force) {
+    throw new TypeError(`${output} already exists. Pass --force to overwrite it.`);
+  }
+
+  writeFileSync(output, mcpDemoSource(), { mode: 0o644 });
+
+  console.log(`Created ${output}`);
+  console.log("");
+  console.log("Terminal 1: keep the local dev log running");
+  console.log(`  ${devCommandHint()}`);
+  console.log("");
+  console.log("Terminal 2: run the MCP-shaped tool call and view the receipt");
+  console.log(`  node ${output}`);
+  console.log("  npx sello actions");
+  console.log("");
+  console.log(`Then open ${actionViewerUrlHint()}`);
+}
+
+function initA2aDemoCommand(args: string[]): void {
+  const output = readFlag(args, "--output") ?? "sello-a2a-demo.mjs";
+  const force = args.includes("--force");
+
+  if (existsSync(output) && !force) {
+    throw new TypeError(`${output} already exists. Pass --force to overwrite it.`);
+  }
+
+  writeFileSync(output, a2aDemoSource(), { mode: 0o644 });
+
+  console.log(`Created ${output}`);
+  console.log("");
+  console.log("Terminal 1: keep the local dev log running");
+  console.log(`  ${devCommandHint()}`);
+  console.log("");
+  console.log("Terminal 2: run the A2A-shaped message and view the receipt");
+  console.log(`  node ${output}`);
+  console.log("  npx sello actions");
+  console.log("");
+  console.log(`Then open ${actionViewerUrlHint()}`);
 }
 
 function keysCommand(args: string[]): void {
@@ -852,6 +902,8 @@ function printHelp(): void {
   sello call-http-demo [--url http://localhost:8790/calendar/events] [--title title]
   sello init-demo [--output emit-receipt.mjs] [--force]
   sello init-http-demo [--output sello-http-route.mjs] [--force]
+  sello init-mcp-demo [--output sello-mcp-demo.mjs] [--force]
+  sello init-a2a-demo [--output sello-a2a-demo.mjs] [--force]
   sello actions [--token agent-token]
   sello keys service
   sello inspect-env
@@ -915,6 +967,25 @@ function formatHttpDemoResponse(responseText: string): string {
     return JSON.stringify(JSON.parse(responseText), null, 2);
   } catch {
     return responseText;
+  }
+}
+
+function devCommandHint(): string {
+  const state = loadDevStateIfPresent();
+  const port = state ? portFromDevState(state) : undefined;
+  return port && port !== "8787" ? `npx sello dev --port ${port}` : "npx sello dev";
+}
+
+function actionViewerUrlHint(): string {
+  const state = loadDevStateIfPresent();
+  return state ? actionViewerUrl(state) : "http://localhost:8787/actions";
+}
+
+function portFromDevState(state: DevState): string | undefined {
+  try {
+    return new URL(state.logEndpoint).port;
+  } catch {
+    return undefined;
   }
 }
 
@@ -1078,6 +1149,127 @@ function slug(value) {
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "")
     .slice(0, 40);
+}
+`;
+}
+
+function mcpDemoSource(): string {
+  return `import { readFileSync } from "node:fs";
+import { sello } from "sello";
+
+const state = JSON.parse(readFileSync(".sello/dev.json", "utf8"));
+
+const receipts = sello.service({
+  service: state.serviceId,
+  serviceKey: state.serviceKey,
+  tokenIssuer: state.tokenIssuerPublicKey,
+  log: sello.logs.http(state.logUrl, { endpoint: state.logEndpoint }),
+  submit: { mode: "await" },
+});
+
+const createEvent = receipts.mcpTool("calendar.create_event", async (args) => {
+  const title = readString(args.title, "title");
+  return {
+    content: [
+      {
+        type: "text",
+        text: "created " + title,
+      },
+    ],
+  };
+});
+
+const response = await createEvent(
+  {
+    title: "MCP launch checklist",
+  },
+  {
+    requestInfo: {
+      headers: new Headers({
+        authorization: "Bearer " + state.agentToken,
+      }),
+    },
+  },
+);
+
+await receipts.flush();
+
+console.log("MCP tool response:");
+console.log(JSON.stringify(response, null, 2));
+
+function readString(value, name) {
+  if (typeof value !== "string" || value.length === 0) {
+    throw new TypeError(name + " must be a non-empty string");
+  }
+  return value;
+}
+`;
+}
+
+function a2aDemoSource(): string {
+  return `import { readFileSync } from "node:fs";
+import { sello } from "sello";
+
+const state = JSON.parse(readFileSync(".sello/dev.json", "utf8"));
+
+const receipts = sello.service({
+  service: state.serviceId,
+  serviceKey: state.serviceKey,
+  tokenIssuer: state.tokenIssuerPublicKey,
+  log: sello.logs.http(state.logUrl, { endpoint: state.logEndpoint }),
+  submit: { mode: "await" },
+});
+
+const sendMessage = receipts.a2aMessage(async (request) => ({
+  jsonrpc: "2.0",
+  id: request.id,
+  result: {
+    kind: "message",
+    messageId: "calendar-reply-1",
+    role: "agent",
+    parts: [
+      {
+        kind: "text",
+        text: "created " + readMessageText(request),
+      },
+    ],
+  },
+}));
+
+const response = await sendMessage(
+  {
+    jsonrpc: "2.0",
+    id: "a2a-demo-1",
+    method: "message/send",
+    params: {
+      message: {
+        role: "user",
+        parts: [
+          {
+            kind: "text",
+            text: "A2A launch checklist",
+          },
+        ],
+      },
+    },
+  },
+  {
+    headers: new Headers({
+      authorization: "Bearer " + state.agentToken,
+    }),
+  },
+);
+
+await receipts.flush();
+
+console.log("A2A message response:");
+console.log(JSON.stringify(response, null, 2));
+
+function readMessageText(request) {
+  return request.params.message.parts
+    .filter((part) => part.kind === "text")
+    .map((part) => part.text)
+    .join(" ") || "untitled";
 }
 `;
 }

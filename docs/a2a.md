@@ -122,6 +122,18 @@ For a specific agent token:
 npx sello actions --token <agent-token>
 ```
 
+## Runnable Demo
+
+To generate a tiny A2A-shaped demo in your project:
+
+```bash
+npx --yes sello init-a2a-demo
+node sello-a2a-demo.mjs
+npx --yes sello actions
+```
+
+Keep `npx sello dev` running in another terminal while you run the generated file.
+
 ## Example
 
 See [`sdks/typescript/examples/a2a-minimal-server.ts`](../sdks/typescript/examples/a2a-minimal-server.ts) for a dependency-free A2A-shaped example. It wraps one `message/send` handler and leaves unknown methods unreceipted.

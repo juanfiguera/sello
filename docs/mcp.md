@@ -132,6 +132,18 @@ For a specific agent token:
 npx sello actions --token <agent-token>
 ```
 
+## Runnable Demo
+
+To generate a tiny MCP-shaped demo in your project:
+
+```bash
+npx --yes sello init-mcp-demo
+node sello-mcp-demo.mjs
+npx --yes sello actions
+```
+
+Keep `npx sello dev` running in another terminal while you run the generated file.
+
 ## Example
 
 See [`sdks/typescript/examples/mcp-minimal-server.ts`](../sdks/typescript/examples/mcp-minimal-server.ts) for a dependency-free MCP-shaped example. It wraps one `tools/call` handler and leaves unknown tools unreceipted.

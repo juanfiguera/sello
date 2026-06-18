@@ -104,11 +104,13 @@ SELLO_SUBMIT_MODE=background
 
 Sello works with your own log server. Using `sello.build` is an optional convenience, not a protocol requirement.
 
-To scaffold a tiny emitter or HTTP route:
+To scaffold a tiny demo for each boundary:
 
 ```bash
 npx --yes sello init-demo
 npx --yes sello init-http-demo
+npx --yes sello init-mcp-demo
+npx --yes sello init-a2a-demo
 ```
 
 ## Add Sello to an MCP Server
@@ -171,8 +173,8 @@ See [docs/a2a.md](docs/a2a.md) for token handling, hash boundaries, unknown-meth
 | What you want to wire | Start here |
 | --- | --- |
 | A normal tool handler | [SDK Quickstart](docs/sdk-quickstart.md) and [`quickstart-tool.ts`](sdks/typescript/examples/quickstart-tool.ts) |
-| An MCP tool | [MCP Integration](docs/mcp.md) and [`mcp-minimal-server.ts`](sdks/typescript/examples/mcp-minimal-server.ts) |
-| An A2A message handler | [A2A Integration](docs/a2a.md) and [`a2a-minimal-server.ts`](sdks/typescript/examples/a2a-minimal-server.ts) |
+| An MCP tool | `npx --yes sello init-mcp-demo`, [MCP Integration](docs/mcp.md), and [`mcp-minimal-server.ts`](sdks/typescript/examples/mcp-minimal-server.ts) |
+| An A2A message handler | `npx --yes sello init-a2a-demo`, [A2A Integration](docs/a2a.md), and [`a2a-minimal-server.ts`](sdks/typescript/examples/a2a-minimal-server.ts) |
 | Verified action viewing | `npx sello actions` or `http://localhost:8787/actions` |
 
 ## See Logged Actions

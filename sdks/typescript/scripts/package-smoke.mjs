@@ -52,6 +52,14 @@ try {
   if (!existsSync(join(projectDir, "sello-http-route.mjs"))) {
     throw new Error("sello init-http-demo did not create sello-http-route.mjs");
   }
+  run(npxCommand, ["--no-install", "sello", "init-mcp-demo"], { cwd: projectDir });
+  if (!existsSync(join(projectDir, "sello-mcp-demo.mjs"))) {
+    throw new Error("sello init-mcp-demo did not create sello-mcp-demo.mjs");
+  }
+  run(npxCommand, ["--no-install", "sello", "init-a2a-demo"], { cwd: projectDir });
+  if (!existsSync(join(projectDir, "sello-a2a-demo.mjs"))) {
+    throw new Error("sello init-a2a-demo did not create sello-a2a-demo.mjs");
+  }
   run(npxCommand, ["--no-install", "sello", "dev", "--dry-run"], { cwd: projectDir });
 
   console.log("Package smoke test passed.");

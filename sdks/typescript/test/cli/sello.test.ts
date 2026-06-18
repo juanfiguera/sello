@@ -40,6 +40,8 @@ describe("sello CLI", () => {
     assert.match(result.stdout, /sello call-http-demo/);
     assert.match(result.stdout, /sello init-demo/);
     assert.match(result.stdout, /sello init-http-demo/);
+    assert.match(result.stdout, /sello init-mcp-demo/);
+    assert.match(result.stdout, /sello init-a2a-demo/);
     assert.match(result.stdout, /sello actions/);
     assert.match(result.stdout, /sello keys service/);
   });
@@ -219,6 +221,64 @@ describe("sello CLI", () => {
     const result = runSello(["init-http-demo"], { cwd });
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /sello-http-route\.mjs already exists/);
+  });
+
+  it("scaffolds an MCP demo", () => {
+    const cwd = makeTempCwd();
+    const result = runSello(["init-mcp-demo"], { cwd });
+    const outputPath = join(cwd, "sello-mcp-demo.mjs");
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /Created sello-mcp-demo\.mjs/);
+    assert.match(result.stdout, /Terminal 2: run the MCP-shaped tool call/);
+    assert.match(result.stdout, /node sello-mcp-demo\.mjs/);
+    assert.match(result.stdout, /npx sello actions/);
+    assert.equal(existsSync(outputPath), true);
+
+    const source = readFileSync(outputPath, "utf8");
+    assert.match(source, /import \{ sello \} from "sello"/);
+    assert.match(source, /receipts\.mcpTool\("calendar\.create_event"/);
+    assert.match(source, /authorization: "Bearer " \+ state\.agentToken/);
+
+    const syntax = spawnSync(process.execPath, ["--check", outputPath], {
+      encoding: "utf8",
+    });
+    assert.equal(syntax.status, 0, syntax.stderr);
+  });
+
+  it("scaffolds an A2A demo", () => {
+    const cwd = makeTempCwd();
+    const result = runSello(["init-a2a-demo"], { cwd });
+    const outputPath = join(cwd, "sello-a2a-demo.mjs");
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /Created sello-a2a-demo\.mjs/);
+    assert.match(result.stdout, /Terminal 2: run the A2A-shaped message/);
+    assert.match(result.stdout, /node sello-a2a-demo\.mjs/);
+    assert.match(result.stdout, /npx sello actions/);
+    assert.equal(existsSync(outputPath), true);
+
+    const source = readFileSync(outputPath, "utf8");
+    assert.match(source, /import \{ sello \} from "sello"/);
+    assert.match(source, /receipts\.a2aMessage/);
+    assert.match(source, /method: "message\/send"/);
+    assert.match(source, /authorization: "Bearer " \+ state\.agentToken/);
+
+    const syntax = spawnSync(process.execPath, ["--check", outputPath], {
+      encoding: "utf8",
+    });
+    assert.equal(syntax.status, 0, syntax.stderr);
+  });
+
+  it("uses the local dev port in scaffold instructions when dev state exists", () => {
+    const cwd = makeTempCwd();
+    const stateResult = runSello(["dev", "--port", "8796", "--dry-run"], { cwd });
+    const scaffoldResult = runSello(["init-mcp-demo"], { cwd });
+
+    assert.equal(stateResult.status, 0, stateResult.stderr);
+    assert.equal(scaffoldResult.status, 0, scaffoldResult.stderr);
+    assert.match(scaffoldResult.stdout, /npx sello dev --port 8796/);
+    assert.match(scaffoldResult.stdout, /http:\/\/localhost:8796\/actions/);
   });
 
   it("reports missing dev state before calling the HTTP route demo", () => {

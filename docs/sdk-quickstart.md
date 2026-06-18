@@ -72,9 +72,23 @@ npx --yes sello call-http-demo
 npx --yes sello actions
 ```
 
+To try the same local loop around MCP or A2A-shaped handlers:
+
+```bash
+npx --yes sello init-mcp-demo
+node sello-mcp-demo.mjs
+npx --yes sello actions
+```
+
+```bash
+npx --yes sello init-a2a-demo
+node sello-a2a-demo.mjs
+npx --yes sello actions
+```
+
 ## What Just Happened?
 
-`sello dev` created local development keys, a demo authorization token, a service registry, and a local transparency log. The wrapped tool or route verified the token before running your handler. After the handler returned, Sello signed an encrypted receipt for the observed action and submitted it to the local log. The log stored encrypted receipt data, not plaintext action details. `sello actions` used the owner key from local dev state to fetch, verify, decrypt, and print the action.
+`sello dev` created local development keys, a demo authorization token, a service registry, and a local transparency log. The wrapped function, route, MCP tool, or A2A message callback verified the token before running your code. After your code returned, Sello signed an encrypted receipt for the observed action and submitted it to the local log. The log stored encrypted receipt data, not plaintext action details. `sello actions` used the owner key from local dev state to fetch, verify, decrypt, and print the action.
 
 Local dev state lives under `.sello/`. The encrypted dev log is stored in `.sello/dev-log.jsonl`, so receipts survive restarting `sello dev` without being committed to git.
 
@@ -92,6 +106,8 @@ Local dev state lives under `.sello/`. The encrypted dev log is stored in `.sell
 - **Port already in use:** run `npx sello dev --port 8791`.
 - **No actions found:** make sure `sello dev` is running from the same project folder where you emitted the receipt.
 - **Missing token:** run `npx sello dev` first so `.sello/dev.json` exists.
+
+## Contributing From This Repo
 
 Inside this repo, start the local log and action viewer:
 
