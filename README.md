@@ -17,6 +17,7 @@
   <a href="#try-it">Quickstart</a> &middot;
   <a href="#add-sello-to-a-tool">Add Sello</a> &middot;
   <a href="docs/mcp.md">MCP</a> &middot;
+  <a href="docs/a2a.md">A2A</a> &middot;
   <a href="sdks/README.md">SDKs</a> &middot;
   <a href="SPEC.md">Protocol</a> &middot;
   <a href="https://arxiv.org/abs/2606.04193">Paper</a>
